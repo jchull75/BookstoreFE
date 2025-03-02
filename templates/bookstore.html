@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bookstore App</title>
+    <style>
+        body { padding: 16px; font-family: Arial, sans-serif; }
+        h1 { font-size: 24px; }
+        button { width: 100%; padding: 10px; margin: 16px 0; }
+        .book-list { list-style: none; padding: 0; }
+        .book-item { padding: 8px; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>📚 Browse Books</h1>
+    <form method="POST">
+        <button type="submit" name="browse">Browse Books (A-Z)</button>
+    </form>
+    {% if books|length == 0 %}
+        <p>No books found. Click 'Browse Books' to load.</p>
+    {% else %}
+        <ul class="book-list">
+            {% for book in books %}
+                <li class="book-item">
+                    {{ book.title }} - {{ book.author }} ({{ book.genre }}) - ${{ "%.2f" % book.price }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
