@@ -2,16 +2,23 @@
 <html>
 <head>
     <title>Bookstore App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { padding: 16px; font-family: Arial, sans-serif; }
-        h1 { font-size: 24px; }
-        button { padding: 10px; margin: 8px 0; }
-        .book-list, .order-list { list-style: none; padding: 0; }
-        .book-item, .order-item { padding: 8px; border-bottom: 1px solid #ddd; }
+        body { padding: 20px; }
         .message-success { color: green; }
         .message-error { color: red; }
     </style>
     <script>
+        function addToCart(bookId) {
+            fetch('/add_to_cart', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'book_id=' + bookId
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message));
+        }
+
         function orderBook(bookId) {
             fetch('/orders', {
                 method: 'POST',
@@ -44,51 +51,59 @@
     </script>
 </head>
 <body>
-    <h1>📚 Browse Books</h1>
-    <p><a href="{{ url_for('cart') }}">View Cart ({{ cart|length }})</a></p>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <p class="message-{{ category }}">{{ message }}</p>
-            {% endfor %}
+    <div class="container">
+        <h1>📚 Browse Books</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <p class="message-{{ category }}">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Search by title, author, or genre">
+                <button type="submit" name="search_books" class="btn btn-primary">Search</button>
+                <button type="submit" name="browse" class="btn btn-secondary">Browse All</button>
+            </div>
+        </form>
+        <a href="{{ url_for('cart') }}" class="btn btn-info mb-3">View Cart</a>
+        <a href="{{ url_for('profile') }}" class="btn btn-info mb-3">Profile</a>
+        {% if session.username == 'admin' %}
+            <a href="{{ url_for('admin_add_book') }}" class="btn btn-warning mb-3">Add Book</a>
+            <a href="{{ url_for('admin_inventory') }}" class="btn btn-warning mb-3">Inventory</a>
         {% endif %}
-    {% endwith %}
-    <form method="POST">
-        <button type="submit" name="browse">Browse Books (A-Z)</button>
-        <input type="text" name="query" placeholder="Search by title or author">
-        <button type="submit" name="search">Search</button>
-    </form>
-    {% if books|length == 0 %}
-        <p>No books found. Click 'Browse Books' to load.</p>
-    {% else %}
-        <ul class="book-list">
-            {% for book in books %}
-                <li class="book-item">
-                    {{ book.title }} - {{ book.author }} ({{ book.genre }}) - ${{ "%.2f" % book.price }} ({{ book.quantity }} in stock)
-                    <form method="POST" style="display:inline;">
-                        <input type="hidden" name="book_id" value="{{ book.book_id }}">
-                        <input type="number" name="quantity" value="1" min="1" max="{{ book.quantity }}" style="width:50px;">
-                        <button type="submit" name="add_to_cart">Add to Cart</button>
-                    </form>
-                    <button onclick="orderBook({{ book.book_id }})">Order Now</button>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-    <h2>Your Orders</h2>
-    {% if orders|length == 0 %}
-        <p>No orders yet.</p>
-    {% else %}
-        <ul class="order-list">
-            {% for order in orders %}
-                <li class="order-item">
-                    Order #{{ order.order_id }}: {{ order.title }} by {{ order.author }} (x{{ order.quantity }}) - Status: {{ order.status }}
-                    {% if order.status == 'Pending' %}
-                        <button onclick="cancelOrder({{ order.order_id }})">Cancel</button>
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+        <a href="{{ url_for('login') }}" class="btn btn-danger mb-3">Logout</a>
+        {% if books|length == 0 %}
+            <p>No books found. Try searching or browsing.</p>
+        {% else %}
+            <ul class="list-group">
+                {% for book in books %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ book.title }} - {{ book.author }} ({{ book.genre }}) - ${{ "%.2f" % book.price }}
+                        <div>
+                            <button class="btn btn-success btn-sm" onclick="addToCart({{ book.book_id }})">Add to Cart</button>
+                            <button class="btn btn-primary btn-sm" onclick="orderBook({{ book.book_id }})">Order Now</button>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        <h2 class="mt-4">Your Orders</h2>
+        {% if orders|length == 0 %}
+            <p>No orders yet.</p>
+        {% else %}
+            <ul class="list-group">
+                {% for order in orders %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Order #{{ order.order_id }}: {{ order.title }} by {{ order.author }} - Status: {{ order.status }}
+                        {% if order.status == 'Pending' %}
+                            <button class="btn btn-danger btn-sm" onclick="cancelOrder({{ order.order_id }})">Cancel</button>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
 </body>
 </html>

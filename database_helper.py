@@ -1,6 +1,6 @@
 import sqlite3
 import os
-from hashlib import sha256
+from werkzeug.security import generate_password_hash, check_password_hash
 
 DATABASE_NAME = "bookstore.db"
 
@@ -16,6 +16,7 @@ class DatabaseHelper:
         conn = self._get_connection()
         cursor = conn.cursor()
 
+        # Create Users table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Users (
                 user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,27 +24,33 @@ class DatabaseHelper:
                 last_name TEXT NOT NULL,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                address TEXT
+                mailing_address TEXT
             )
         """)
 
+        # Add mailing_address column if it doesn’t exist
+        try:
+            cursor.execute("ALTER TABLE Users ADD COLUMN mailing_address TEXT")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        # Create Books table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Books (
                 book_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 author TEXT NOT NULL,
                 genre TEXT NOT NULL,
-                price REAL NOT NULL,
-                quantity INTEGER NOT NULL DEFAULT 0
+                price REAL NOT NULL
             )
         """)
 
+        # Create Orders table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Orders (
                 order_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 customer_username TEXT NOT NULL,
                 book_id INTEGER NOT NULL,
-                quantity INTEGER NOT NULL DEFAULT 1,
                 status TEXT NOT NULL DEFAULT 'Pending',
                 FOREIGN KEY (customer_username) REFERENCES Users(username),
                 FOREIGN KEY (book_id) REFERENCES Books(book_id)
@@ -62,17 +69,13 @@ class DatabaseHelper:
 
     def _insert_sample_books(self, cursor):
         books = [
-            ("The Great Gatsby", "F. Scott Fitzgerald", "Classic", 10.99, 5),
-            ("To Kill a Mockingbird", "Harper Lee", "Classic", 8.99, 3),
-            ("1984", "George Orwell", "Dystopian", 9.99, 7),
-            ("Pride and Prejudice", "Jane Austen", "Romance", 7.99, 4),
-            ("Moby-Dick", "Herman Melville", "Adventure", 11.49, 2),
-            ("War and Peace", "Leo Tolstoy", "Historical", 12.99, 1),
-            ("The Catcher in the Rye", "J.D. Salinger", "Coming-of-age", 9.49, 6),
-            ("Brave New World", "Aldous Huxley", "Dystopian", 10.49, 3),
-            ("Crime and Punishment", "Fyodor Dostoevsky", "Psychological", 8.99, 5),
+            ("The Great Gatsby", "F. Scott Fitzgerald", "Classic", 10.99),
+            ("To Kill a Mockingbird", "Harper Lee", "Classic", 8.99),
+            ("1984", "George Orwell", "Dystopian", 9.99),
+            ("Pride and Prejudice", "Jane Austen", "Romance", 7.99),
+            ("Moby-Dick", "Herman Melville", "Adventure", 11.49),
         ]
-        cursor.executemany("INSERT INTO Books (title, author, genre, price, quantity) VALUES (?, ?, ?, ?, ?)", books)
+        cursor.executemany("INSERT INTO Books (title, author, genre, price) VALUES (?, ?, ?, ?)", books)
         print("Sample books added to database!")
 
     def get_all_books(self):
@@ -80,35 +83,24 @@ class DatabaseHelper:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Books ORDER BY title")
         rows = cursor.fetchall()
-        books = [{"book_id": row[0], "title": row[1], "author": row[2], "genre": row[3], "price": row[4], "quantity": row[5]} for row in rows]
-        conn.close()
-        return books
-
-    def search_books(self, query):
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Books WHERE title LIKE ? OR author LIKE ? ORDER BY title", (f"%{query}%", f"%{query}%"))
-        rows = cursor.fetchall()
-        books = [{"book_id": row[0], "title": row[1], "author": row[2], "genre": row[3], "price": row[4], "quantity": row[5]} for row in rows]
+        books = [{"book_id": row[0], "title": row[1], "author": row[2], "genre": row[3], "price": row[4]} for row in rows]
         conn.close()
         return books
 
     def login_user(self, username, password):
         conn = self._get_connection()
         cursor = conn.cursor()
-        hashed_password = sha256(password.encode()).hexdigest()
-        cursor.execute("SELECT * FROM Users WHERE username = ? AND password = ?", (username, hashed_password))
+        cursor.execute("SELECT password FROM Users WHERE username = ?", (username,))
         result = cursor.fetchone()
         conn.close()
-        return result is not None
+        return result and check_password_hash(result[0], password)
 
-    def register_user(self, first_name, last_name, username, password, address=""):
+    def register_user(self, first_name, last_name, username, password):
         conn = self._get_connection()
         cursor = conn.cursor()
-        hashed_password = sha256(password.encode()).hexdigest()
         try:
-            cursor.execute("INSERT INTO Users (first_name, last_name, username, password, address) VALUES (?, ?, ?, ?, ?)",
-                          (first_name, last_name, username, hashed_password, address))
+            cursor.execute("INSERT INTO Users (first_name, last_name, username, password) VALUES (?, ?, ?, ?)",
+                          (first_name, last_name, username, generate_password_hash(password)))
             conn.commit()
             return True
         except sqlite3.IntegrityError:
@@ -117,32 +109,19 @@ class DatabaseHelper:
         finally:
             conn.close()
 
-    def get_user_address(self, username):
+    def add_book(self, title, author, genre, price):
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT address FROM Users WHERE username = ?", (username,))
-        result = cursor.fetchone()
-        conn.close()
-        return result[0] if result else ""
-
-    def update_user_address(self, username, address):
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("UPDATE Users SET address = ? WHERE username = ?", (address, username))
+        cursor.execute("INSERT INTO Books (title, author, genre, price) VALUES (?, ?, ?, ?)",
+                      (title, author, genre, price))
         conn.commit()
         conn.close()
 
-    def add_order(self, customer_username, book_id, quantity=1):
+    def add_order(self, customer_username, book_id):
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT quantity FROM Books WHERE book_id = ?", (book_id,))
-        stock = cursor.fetchone()[0]
-        if stock < quantity:
-            conn.close()
-            return None
-        cursor.execute("UPDATE Books SET quantity = quantity - ? WHERE book_id = ?", (quantity, book_id))
-        cursor.execute("INSERT INTO Orders (customer_username, book_id, quantity, status) VALUES (?, ?, ?, 'Pending')",
-                      (customer_username, book_id, quantity))
+        cursor.execute("INSERT INTO Orders (customer_username, book_id, status) VALUES (?, ?, 'Pending')",
+                      (customer_username, book_id))
         order_id = cursor.lastrowid
         conn.commit()
         conn.close()
@@ -151,13 +130,15 @@ class DatabaseHelper:
     def cancel_order(self, order_id):
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT status, book_id, quantity FROM Orders WHERE order_id = ?", (order_id,))
+        cursor.execute("SELECT status FROM Orders WHERE order_id = ?", (order_id,))
         result = cursor.fetchone()
-        if not result or result[0] != 'Pending':
+        if not result:
+            conn.close()
+            return None
+        if result[0] != 'Pending':
             conn.close()
             return False
         cursor.execute("UPDATE Orders SET status = 'Cancelled' WHERE order_id = ?", (order_id,))
-        cursor.execute("UPDATE Books SET quantity = quantity + ? WHERE book_id = ?", (result[2], result[1]))
         conn.commit()
         conn.close()
         return True
@@ -166,23 +147,19 @@ class DatabaseHelper:
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT o.order_id, b.title, b.author, o.status, o.quantity, b.price
+            SELECT o.order_id, b.title, b.author, o.status
             FROM Orders o
             JOIN Books b ON o.book_id = b.book_id
             WHERE o.customer_username = ?
         """, (username,))
         rows = cursor.fetchall()
-        orders = [{"order_id": row[0], "title": row[1], "author": row[2], "status": row[3], "quantity": row[4], "price": row[5]} for row in rows]
+        orders = [{"order_id": row[0], "title": row[1], "author": row[2], "status": row[3]} for row in rows]
         conn.close()
         return orders
 
-    def add_book(self, title, author, genre, price, quantity):
+    def update_address(self, username, address):
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Books (title, author, genre, price, quantity) VALUES (?, ?, ?, ?, ?)",
-                      (title, author, genre, price, quantity))
+        cursor.execute("UPDATE Users SET mailing_address = ? WHERE username = ?", (address, username))
         conn.commit()
         conn.close()
-
-    def get_inventory(self):
-        return self.get_all_books()
