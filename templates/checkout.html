@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Checkout - Bookstore App</title>
+    <style>
+        body { padding: 16px; font-family: Arial, sans-serif; }
+        h1 { font-size: 24px; }
+        input { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; margin: 16px 0; }
+        .message-success { color: green; }
+        .message-error { color: red; }
+        .order-list { list-style: none; padding: 0; }
+        .order-item { padding: 8px; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>Checkout Order #{{ order.order_id }}</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <p class="message-{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <p>Total Price: ${{ "%.2f" % order.total_price }}</p>
+    <ul class="order-list">
+        {% for item in order.items %}
+            <li class="order-item">
+                {{ item.title }} by {{ item.author }} - ${{ "%.2f" % item.price }}
+            </li>
+        {% endfor %}
+    </ul>
+    <form method="POST">
+        <h2>Payment Method</h2>
+        {% if payment %}
+            <p>Using Card: {{ payment.card_number[-4:] }} (Expires: {{ payment.card_expiry }})</p>
+        {% else %}
+            <label>Card Number: <input type="text" name="card_number" required></label><br>
+            <label>Expiry (MM/YY): <input type="text" name="card_expiry" required></label><br>
+            <label>CVC: <input type="text" name="card_cvc" required></label><br>
+        {% endif %}
+        <h2>Shipping Address</h2>
+        <label>Street: <input type="text" name="address_street" value="{{ address.street if address else '' }}" required></label><br>
+        <label>City: <input type="text" name="address_city" value="{{ address.city if address else '' }}" required></label><br>
+        <label>State: <input type="text" name="address_state" value="{{ address.state if address else '' }}" required></label><br>
+        <label>ZIP: <input type="text" name="address_zip" value="{{ address.zip if address else '' }}" required></label><br>
+        <button type="submit">Complete Order</button>
+    </form>
+    <button onclick="window.location.href='{{ url_for('bookstore') }}'">Back to Bookstore</button>
+</body>
+</html>
