@@ -6,12 +6,54 @@
         body { padding: 16px; font-family: Arial, sans-serif; }
         h1 { font-size: 24px; }
         button { width: 100%; padding: 10px; margin: 16px 0; }
-        .book-list { list-style: none; padding: 0; }
-        .book-item { padding: 8px; border-bottom: 1px solid #ddd; }
+        .book-list, .order-list { list-style: none; padding: 0; }
+        .book-item, .order-item { padding: 8px; border-bottom: 1px solid #ddd; }
+        .message-success { color: green; }
+        .message-error { color: red; }
     </style>
+    <script>
+        function orderBook(bookId) {
+            fetch('/orders', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'book_id=' + bookId
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(data.message + ' Order ID: ' + data.order_id);
+                    location.reload(); // Refresh to show new order
+                }
+            });
+        }
+
+        function cancelOrder(orderId) {
+            fetch('/orders/' + orderId + '/cancel', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(data.message);
+                    location.reload(); // Refresh to update order status
+                }
+            });
+        }
+    </script>
 </head>
 <body>
     <h1>📚 Browse Books</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <p class="message-{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     <form method="POST">
         <button type="submit" name="browse">Browse Books (A-Z)</button>
     </form>
@@ -22,6 +64,22 @@
             {% for book in books %}
                 <li class="book-item">
                     {{ book.title }} - {{ book.author }} ({{ book.genre }}) - ${{ "%.2f" % book.price }}
+                    <button onclick="orderBook({{ book.book_id }})">Order</button>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <h2>Your Orders</h2>
+    {% if orders|length == 0 %}
+        <p>No orders yet.</p>
+    {% else %}
+        <ul class="order-list">
+            {% for order in orders %}
+                <li class="order-item">
+                    Order #{{ order.order_id }}: {{ order.title }} by {{ order.author }} - Status: {{ order.status }}
+                    {% if order.status == 'Pending' %}
+                        <button onclick="cancelOrder({{ order.order_id }})">Cancel</button>
+                    {% endif %}
                 </li>
             {% endfor %}
         </ul>
