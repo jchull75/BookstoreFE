@@ -55,16 +55,23 @@ def register_routes(app):
             return redirect(url_for("login"))
         cart = session.get('cart', [])
         books = [book for book in db_helper.get_all_books() if book["book_id"] in cart]
+        address_data = db_helper.get_user_address(session['username'])
         if request.method == "POST" and "checkout" in request.form:
+            shipping_street = request.form["shipping_street"]
+            shipping_city = request.form["shipping_city"]
+            shipping_state = request.form["shipping_state"]
+            shipping_zipcode = request.form["shipping_zipcode"]
+            # Preset payment details for testing
+            payment_method = "Credit Card: 1234 (Test Mode)"
             for book_id in cart:
-                order_id = db_helper.add_order(session['username'], book_id)
+                order_id = db_helper.add_order(session['username'], book_id, shipping_street, shipping_city, shipping_state, shipping_zipcode, payment_method)
                 if order_id is None:
                     flash(f"❌ Cannot order book ID {book_id}: Out of stock!", "error")
                     return redirect(url_for("cart"))
             session['cart'] = []
-            flash("✅ Order placed for cart items!", "success")
+            flash("✅ Order placed successfully!", "success")
             return redirect(url_for("bookstore"))
-        return render_template("cart.html", books=books)
+        return render_template("cart.html", books=books, address=address_data)
 
     @app.route("/profile", methods=["GET", "POST"])
     def profile():
@@ -115,6 +122,19 @@ def register_routes(app):
         books = db_helper.get_all_books()
         return render_template("admin_inventory.html", books=books)
 
+    @app.route("/admin/order_books", methods=["GET", "POST"])
+    def admin_order_books():
+        if 'username' not in session or session['username'] != 'admin':
+            flash("❌ Admin access only!", "error")
+            return redirect(url_for("login"))
+        if request.method == "POST":
+            inventory_order_id = int(request.form["inventory_order_id"])
+            db_helper.complete_inventory_order(inventory_order_id)
+            flash("✅ Inventory order completed!", "success")
+            return redirect(url_for("admin_order_books"))
+        inventory_orders = db_helper.get_pending_inventory_orders()
+        return render_template("admin_order_books.html", inventory_orders=inventory_orders)
+
     @app.route("/add_to_cart", methods=["POST"])
     def add_to_cart():
         if 'username' not in session:
@@ -139,7 +159,11 @@ def register_routes(app):
         book_id = request.form.get("book_id")
         if not book_id:
             return jsonify({'error': 'Book ID required'}), 400
-        order_id = db_helper.add_order(session['username'], int(book_id))
+        address_data = db_helper.get_user_address(session['username'])
+        payment_method = "Credit Card (Profile Default)"
+        order_id = db_helper.add_order(session['username'], int(book_id), 
+                                      address_data["street"], address_data["city"], 
+                                      address_data["state"], address_data["zipcode"], payment_method)
         if order_id is None:
             return jsonify({'error': 'Book out of stock'}), 400
         return jsonify({'message': 'Order created', 'order_id': order_id}), 201
