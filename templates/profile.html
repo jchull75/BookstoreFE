@@ -3,15 +3,46 @@
 <head>
     <title>Profile - Bookstore App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { padding: 20px; }
-        .message-success { color: green; }
-        .message-error { color: red; }
-    </style>
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('bookstore') }}">Bookstore</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('cart') }}">Cart</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+                    </li>
+                    {% if session.username == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_add_book') }}">Add Book</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_inventory') }}">Inventory</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_order_books') }}">Order Books</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_orders') }}">Orders</a>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
     <div class="container">
-        <h1>Profile</h1>
+        <h1 class="mt-4">Profile</h1>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -19,13 +50,44 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        <form method="POST">
-            <div class="mb-3">
-                <label class="form-label">Mailing Address: <input type="text" name="address" class="form-control" required></label>
-            </div>
-            <button type="submit" class="btn btn-primary">Update Address</button>
-        </form>
+        <div class="card p-4">
+            <h3>Your Information</h3>
+            <p><strong>Username:</strong> {{ session['username'] }}</p>
+            <p><strong>Mailing Address:</strong> {{ address.street if address.street else "Not set" }}, 
+                {{ address.city if address.city else "" }}, 
+                {{ address.state if address.state else "" }} 
+                {{ address.zipcode if address.zipcode else "" }}</p>
+            <h3>Update Address</h3>
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Street:
+                        <input type="text" name="street" class="form-control" 
+                               value="{{ address.street if address.street else '' }}" required>
+                    </label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">City:
+                        <input type="text" name="city" class="form-control" 
+                               value="{{ address.city if address.city else '' }}" required>
+                    </label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">State:
+                        <input type="text" name="state" class="form-control" 
+                               value="{{ address.state if address.state else '' }}" required>
+                    </label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Zipcode:
+                        <input type="text" name="zipcode" class="form-control" 
+                               value="{{ address.zipcode if address.zipcode else '' }}" required>
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Address</button>
+            </form>
+        </div>
         <a href="{{ url_for('bookstore') }}" class="btn btn-link mt-3">Back to Books</a>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Inventory - Bookstore App</title>
+    <title>All Orders - Bookstore App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
@@ -40,7 +40,7 @@
         </div>
     </nav>
     <div class="container">
-        <h1 class="mt-4">Inventory</h1>
+        <h1 class="mt-4">All Customer Orders</h1>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -48,48 +48,33 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        <div class="card p-4 mb-4">
-            <h3>Analytics</h3>
-            <p><strong>Total Sales:</strong> ${{ "%.2f" % analytics.total_sales }}</p>
-            <h4>Top 5 Books by Order Count</h4>
-            <ul class="list-group">
-                {% for book in analytics.top_books %}
-                    <li class="list-group-item">{{ book.title }} by {{ book.author }} - {{ book.order_count }} orders</li>
-                {% endfor %}
-            </ul>
-        </div>
-        <h3>Current Inventory</h3>
-        {% if books|length == 0 %}
-            <p>No books in inventory.</p>
+        {% if orders|length == 0 %}
+            <p>No customer orders yet.</p>
         {% else %}
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Title</th>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Book Title</th>
                         <th>Author</th>
-                        <th>Genre</th>
                         <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Update</th>
+                        <th>Status</th>
+                        <th>Shipping Address</th>
+                        <th>Payment</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for book in books %}
+                    {% for order in orders %}
                         <tr>
-                            <td>{{ book.book_id }}</td>
-                            <td>{{ book.title }}</td>
-                            <td>{{ book.author }}</td>
-                            <td>{{ book.genre }}</td>
-                            <td>${{ "%.2f" % book.price }}</td>
-                            <td>
-                                <form method="POST" action="{{ url_for('admin_inventory') }}" class="d-flex align-items-center">
-                                    <input type="hidden" name="book_id" value="{{ book.book_id }}">
-                                    <input type="number" name="quantity" class="form-control me-2" 
-                                           value="{{ book.quantity }}" min="0" style="width: 80px;" required>
-                                    <button type="submit" class="btn btn-primary btn-sm">Update</button>
-                                </form>
-                            </td>
+                            <td>{{ order.order_id }}</td>
+                            <td>{{ order.customer_username }}</td>
+                            <td>{{ order.title }}</td>
+                            <td>{{ order.author }}</td>
+                            <td>${{ "%.2f" % order.price }}</td>
+                            <td>{{ order.status }}</td>
+                            <td>{{ order.shipping_street }}, {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_zipcode }}</td>
+                            <td>{{ order.payment_method }} - {{ order.payment_status }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
