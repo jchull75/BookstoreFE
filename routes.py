@@ -36,7 +36,7 @@ def register_routes(app):
         if 'username' not in session:
             flash("❌ Please log in to access the bookstore.", "error")
             return redirect(url_for("login"))
-        books = db_helper.get_all_books()  # Default to all books on GET
+        books = db_helper.get_all_books()
         orders = db_helper.get_user_orders(session['username'])
         if request.method == "POST":
             if "search_books" in request.form:
@@ -45,7 +45,7 @@ def register_routes(app):
                 books = [book for book in all_books if search_query in book["title"].lower() or 
                          search_query in book["author"].lower() or search_query in book["genre"].lower()]
             elif "browse" in request.form:
-                books = db_helper.get_all_books()  # Explicitly reset to all books
+                books = db_helper.get_all_books()
         return render_template("bookstore.html", books=books, orders=orders)
 
     @app.route("/cart", methods=["GET", "POST"])
@@ -110,13 +110,21 @@ def register_routes(app):
             flash("❌ Admin access only!", "error")
             return redirect(url_for("login"))
         if request.method == "POST":
-            book_id = int(request.form["book_id"])
-            quantity = int(request.form["quantity"])
-            if quantity < 0:
-                flash("❌ Quantity cannot be negative!", "error")
-            else:
-                db_helper.update_book_quantity(book_id, quantity)
-                flash("✅ Quantity updated successfully!", "success")
+            if "update_quantity" in request.form:
+                book_id = int(request.form["book_id"])
+                quantity = int(request.form["quantity"])
+                if quantity < 0:
+                    flash("❌ Quantity cannot be negative!", "error")
+                else:
+                    db_helper.update_book_quantity(book_id, quantity)
+                    flash("✅ Quantity updated successfully!", "success")
+            elif "order_from_supplier" in request.form:
+                book_id = int(request.form["book_id"])
+                supplier_name = request.form["supplier_name"]
+                amount = int(request.form["amount"])
+                expected_delivery_date = request.form.get("expected_delivery_date") or None
+                db_helper.add_supplier_inventory_order(book_id, supplier_name, amount, expected_delivery_date)
+                flash("✅ Supplier order placed!", "success")
             return redirect(url_for("admin_inventory"))
         books = db_helper.get_all_books()
         analytics = db_helper.get_sales_analytics()
@@ -128,12 +136,12 @@ def register_routes(app):
             flash("❌ Admin access only!", "error")
             return redirect(url_for("login"))
         if request.method == "POST":
-            inventory_order_id = int(request.form["inventory_order_id"])
-            db_helper.complete_inventory_order(inventory_order_id)
-            flash("✅ Inventory order completed!", "success")
+            supplier_inventory_order_id = int(request.form["supplier_inventory_order_id"])
+            db_helper.complete_supplier_inventory_order(supplier_inventory_order_id)
+            flash("✅ Supplier inventory order completed!", "success")
             return redirect(url_for("admin_order_books"))
-        inventory_orders = db_helper.get_pending_inventory_orders()
-        return render_template("admin_order_books.html", inventory_orders=inventory_orders)
+        supplier_inventory_orders = db_helper.get_supplier_inventory_orders("Pending")
+        return render_template("admin_order_books.html", supplier_inventory_orders=supplier_inventory_orders)
 
     @app.route("/admin/orders", methods=["GET"])
     def admin_orders():

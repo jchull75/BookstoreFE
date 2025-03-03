@@ -1,5 +1,6 @@
 import sqlite3
 import os
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
 DATABASE_NAME = "bookstore.db"
@@ -77,11 +78,14 @@ class DatabaseHelper:
                 pass
 
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS InventoryOrders (
-                inventory_order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            CREATE TABLE IF NOT EXISTS SupplierInventoryOrders (
+                supplier_inventory_order_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 book_id INTEGER NOT NULL,
+                supplier_name TEXT NOT NULL,
                 amount INTEGER NOT NULL,
+                order_date TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'Pending',
+                expected_delivery_date TEXT,
                 FOREIGN KEY (book_id) REFERENCES Books(book_id)
             )
         """)
@@ -141,6 +145,67 @@ class DatabaseHelper:
         conn.close()
         return books
 
+    def add_supplier_inventory_order(self, book_id, supplier_name, amount, expected_delivery_date=None):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        order_date = datetime.now().strftime("%Y-%m-%d")
+        min_delivery_date = (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")
+        
+        # Validate and adjust expected_delivery_date
+        if expected_delivery_date:
+            try:
+                delivery_date = datetime.strptime(expected_delivery_date, "%Y-%m-%d")
+                if delivery_date < datetime.strptime(min_delivery_date, "%Y-%m-%d"):
+                    expected_delivery_date = min_delivery_date  # Adjust to minimum 5 days
+            except ValueError:
+                expected_delivery_date = min_delivery_date  # Default if invalid format
+        else:
+            expected_delivery_date = min_delivery_date  # Default to 5 days if not provided
+
+        cursor.execute("""
+            INSERT INTO SupplierInventoryOrders (book_id, supplier_name, amount, order_date, status, expected_delivery_date)
+            VALUES (?, ?, ?, ?, 'Pending', ?)
+        """, (book_id, supplier_name, amount, order_date, expected_delivery_date))
+        conn.commit()
+        conn.close()
+
+    def get_supplier_inventory_orders(self, status=None):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        if status:
+            cursor.execute("""
+                SELECT sio.supplier_inventory_order_id, b.book_id, b.title, b.author, b.genre, b.price, b.quantity, sio.supplier_name, sio.amount, sio.order_date, sio.status, sio.expected_delivery_date
+                FROM SupplierInventoryOrders sio
+                JOIN Books b ON sio.book_id = b.book_id
+                WHERE sio.status = ?
+                ORDER BY sio.order_date DESC
+            """, (status,))
+        else:
+            cursor.execute("""
+                SELECT sio.supplier_inventory_order_id, b.book_id, b.title, b.author, b.genre, b.price, b.quantity, sio.supplier_name, sio.amount, sio.order_date, sio.status, sio.expected_delivery_date
+                FROM SupplierInventoryOrders sio
+                JOIN Books b ON sio.book_id = b.book_id
+                ORDER BY sio.order_date DESC
+            """)
+        rows = cursor.fetchall()
+        orders = [{"supplier_inventory_order_id": row[0], "book_id": row[1], "title": row[2], "author": row[3], "genre": row[4], 
+                  "price": row[5], "quantity": row[6], "supplier_name": row[7], "amount": row[8], "order_date": row[9], 
+                  "status": row[10], "expected_delivery_date": row[11]} for row in rows]
+        conn.close()
+        return orders
+
+    def complete_supplier_inventory_order(self, supplier_inventory_order_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT book_id, amount FROM SupplierInventoryOrders WHERE supplier_inventory_order_id = ?", (supplier_inventory_order_id,))
+        result = cursor.fetchone()
+        if result:
+            book_id, amount = result
+            cursor.execute("UPDATE Books SET quantity = quantity + ? WHERE book_id = ?", (amount, book_id))
+            cursor.execute("UPDATE SupplierInventoryOrders SET status = 'Completed' WHERE supplier_inventory_order_id = ?", (supplier_inventory_order_id,))
+        conn.commit()
+        conn.close()
+
     def login_user(self, username, password):
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -185,7 +250,8 @@ class DatabaseHelper:
             VALUES (?, ?, 'Pending', ?, ?, ?, ?, ?, 'Completed')
         """, (customer_username, book_id, shipping_street, shipping_city, shipping_state, shipping_zipcode, payment_method))
         order_id = cursor.lastrowid
-        cursor.execute("INSERT INTO InventoryOrders (book_id, amount, status) VALUES (?, ?, 'Pending')", (book_id, 5))
+        if result[0] == 1:  # Last book taken, trigger supplier order
+            self.add_supplier_inventory_order(book_id, "Default Supplier", 5)
         conn.commit()
         conn.close()
         return order_id
@@ -252,33 +318,6 @@ class DatabaseHelper:
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute("UPDATE Books SET quantity = quantity + ? WHERE book_id = ?", (amount, book_id))
-        conn.commit()
-        conn.close()
-
-    def get_pending_inventory_orders(self):
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT io.inventory_order_id, b.book_id, b.title, b.author, b.genre, b.price, b.quantity, io.amount
-            FROM InventoryOrders io
-            JOIN Books b ON io.book_id = b.book_id
-            WHERE io.status = 'Pending'
-        """)
-        rows = cursor.fetchall()
-        orders = [{"inventory_order_id": row[0], "book_id": row[1], "title": row[2], "author": row[3], "genre": row[4], 
-                  "price": row[5], "quantity": row[6], "amount": row[7]} for row in rows]
-        conn.close()
-        return orders
-
-    def complete_inventory_order(self, inventory_order_id):
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT book_id, amount FROM InventoryOrders WHERE inventory_order_id = ?", (inventory_order_id,))
-        result = cursor.fetchone()
-        if result:
-            book_id, amount = result
-            cursor.execute("UPDATE Books SET quantity = quantity + ? WHERE book_id = ?", (amount, book_id))
-            cursor.execute("UPDATE InventoryOrders SET status = 'Completed' WHERE inventory_order_id = ?", (inventory_order_id,))
         conn.commit()
         conn.close()
 

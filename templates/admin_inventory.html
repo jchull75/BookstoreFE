@@ -40,7 +40,7 @@
         </div>
     </nav>
     <div class="container">
-        <h1 class="mt-4">Inventory</h1>
+        <h1 class="mt-4">Inventory Management</h1>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -48,53 +48,69 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        <div class="card p-4 mb-4">
-            <h3>Analytics</h3>
-            <p><strong>Total Sales:</strong> ${{ "%.2f" % analytics.total_sales }}</p>
-            <h4>Top 5 Books by Order Count</h4>
-            <ul class="list-group">
-                {% for book in analytics.top_books %}
-                    <li class="list-group-item">{{ book.title }} by {{ book.author }} - {{ book.order_count }} orders</li>
-                {% endfor %}
-            </ul>
-        </div>
-        <h3>Current Inventory</h3>
-        {% if books|length == 0 %}
-            <p>No books in inventory.</p>
-        {% else %}
-            <table class="table table-striped">
-                <thead>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Genre</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Update Quantity</th>
+                    <th>Order from Supplier</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in books %}
                     <tr>
-                        <th>ID</th>
-                        <th>Title</th>
-                        <th>Author</th>
-                        <th>Genre</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Update</th>
+                        <td>{{ book.book_id }}</td>
+                        <td>{{ book.title }}</td>
+                        <td>{{ book.author }}</td>
+                        <td>{{ book.genre }}</td>
+                        <td>${{ "%.2f" % book.price }}</td>
+                        <td>{{ book.quantity }}</td>
+                        <td>
+                            <form method="POST" class="d-flex align-items-center">
+                                <input type="hidden" name="book_id" value="{{ book.book_id }}">
+                                <input type="number" name="quantity" class="form-control me-2" value="{{ book.quantity }}" style="width: 100px;" required>
+                                <button type="submit" name="update_quantity" class="btn btn-primary btn-sm">Update</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="POST" class="d-flex align-items-center">
+                                <input type="hidden" name="book_id" value="{{ book.book_id }}">
+                                <input type="text" name="supplier_name" class="form-control me-2" placeholder="Supplier" style="width: 120px;" required>
+                                <input type="number" name="amount" class="form-control me-2" placeholder="Qty" min="1" style="width: 80px;" required>
+                                <input type="date" name="expected_delivery_date" class="form-control me-2" style="width: 150px;">
+                                <button type="submit" name="order_from_supplier" class="btn btn-success btn-sm">Order</button>
+                            </form>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    {% for book in books %}
-                        <tr>
-                            <td>{{ book.book_id }}</td>
-                            <td>{{ book.title }}</td>
-                            <td>{{ book.author }}</td>
-                            <td>{{ book.genre }}</td>
-                            <td>${{ "%.2f" % book.price }}</td>
-                            <td>
-                                <form method="POST" action="{{ url_for('admin_inventory') }}" class="d-flex align-items-center">
-                                    <input type="hidden" name="book_id" value="{{ book.book_id }}">
-                                    <input type="number" name="quantity" class="form-control me-2" 
-                                           value="{{ book.quantity }}" min="0" style="width: 80px;" required>
-                                    <button type="submit" class="btn btn-primary btn-sm">Update</button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+        <h2 class="mt-4">Sales Analytics</h2>
+        <h3>Top Selling Books</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Orders</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in analytics.top_books %}
+                    <tr>
+                        <td>{{ book.title }}</td>
+                        <td>{{ book.author }}</td>
+                        <td>{{ book.order_count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p><strong>Total Sales:</strong> ${{ "%.2f" % analytics.total_sales }}</p>
         <a href="{{ url_for('bookstore') }}" class="btn btn-link mt-3">Back to Store</a>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
