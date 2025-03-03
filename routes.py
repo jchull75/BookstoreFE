@@ -57,7 +57,10 @@ def register_routes(app):
         books = [book for book in db_helper.get_all_books() if book["book_id"] in cart]
         if request.method == "POST" and "checkout" in request.form:
             for book_id in cart:
-                db_helper.add_order(session['username'], book_id)
+                order_id = db_helper.add_order(session['username'], book_id)
+                if order_id is None:
+                    flash(f"❌ Cannot order book ID {book_id}: Out of stock!", "error")
+                    return redirect(url_for("cart"))
             session['cart'] = []
             flash("✅ Order placed for cart items!", "success")
             return redirect(url_for("bookstore"))
@@ -68,11 +71,16 @@ def register_routes(app):
         if 'username' not in session:
             flash("❌ Please log in to access your profile.", "error")
             return redirect(url_for("login"))
+        address_data = db_helper.get_user_address(session['username'])
         if request.method == "POST":
-            address = request.form["address"]
-            db_helper.update_address(session['username'], address)
+            street = request.form["street"]
+            city = request.form["city"]
+            state = request.form["state"]
+            zipcode = request.form["zipcode"]
+            db_helper.update_address(session['username'], street, city, state, zipcode)
             flash("✅ Address updated!", "success")
-        return render_template("profile.html")
+            address_data = {"street": street, "city": city, "state": state, "zipcode": zipcode}
+        return render_template("profile.html", address=address_data)
 
     @app.route("/admin/add_book", methods=["GET", "POST"])
     def admin_add_book():
@@ -84,16 +92,26 @@ def register_routes(app):
             author = request.form["author"]
             genre = request.form["genre"]
             price = float(request.form["price"])
-            db_helper.add_book(title, author, genre, price)
+            quantity = int(request.form["quantity"])
+            db_helper.add_book(title, author, genre, price, quantity)
             flash("✅ Book added!", "success")
             return redirect(url_for("bookstore"))
         return render_template("admin_add_book.html")
 
-    @app.route("/admin/inventory")
+    @app.route("/admin/inventory", methods=["GET", "POST"])
     def admin_inventory():
         if 'username' not in session or session['username'] != 'admin':
             flash("❌ Admin access only!", "error")
             return redirect(url_for("login"))
+        if request.method == "POST":
+            book_id = int(request.form["book_id"])
+            quantity = int(request.form["quantity"])
+            if quantity < 0:
+                flash("❌ Quantity cannot be negative!", "error")
+            else:
+                db_helper.update_book_quantity(book_id, quantity)
+                flash("✅ Quantity updated successfully!", "success")
+            return redirect(url_for("admin_inventory"))
         books = db_helper.get_all_books()
         return render_template("admin_inventory.html", books=books)
 
@@ -103,10 +121,16 @@ def register_routes(app):
             return jsonify({'error': 'Must be logged in'}), 401
         book_id = int(request.form.get("book_id"))
         cart = session.get('cart', [])
-        if book_id not in cart:
+        book = next((b for b in db_helper.get_all_books() if b["book_id"] == book_id), None)
+        if book and book["quantity"] > 0 and book_id not in cart:
             cart.append(book_id)
             session['cart'] = cart
-        return jsonify({'message': 'Book added to cart'}), 200
+            return jsonify({'message': 'Book added to cart'}), 200
+        elif not book:
+            return jsonify({'error': 'Book not found'}), 404
+        elif book["quantity"] <= 0:
+            return jsonify({'error': 'Book out of stock'}), 400
+        return jsonify({'message': 'Book already in cart'}), 200
 
     @app.route("/orders", methods=["POST"])
     def create_order():
@@ -116,6 +140,8 @@ def register_routes(app):
         if not book_id:
             return jsonify({'error': 'Book ID required'}), 400
         order_id = db_helper.add_order(session['username'], int(book_id))
+        if order_id is None:
+            return jsonify({'error': 'Book out of stock'}), 400
         return jsonify({'message': 'Order created', 'order_id': order_id}), 201
 
     @app.route("/orders/<int:order_id>/cancel", methods=["POST"])
