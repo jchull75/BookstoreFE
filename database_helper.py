@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import json
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -27,13 +28,14 @@ class DatabaseHelper:
                 street TEXT,
                 city TEXT,
                 state TEXT,
-                zipcode TEXT
+                zipcode TEXT,
+                wishlist TEXT DEFAULT '[]'  -- JSON string for wishlist
             )
         """)
 
-        for column in ["street", "city", "state", "zipcode"]:
+        for column in ["street", "city", "state", "zipcode", "wishlist"]:
             try:
-                cursor.execute(f"ALTER TABLE Users ADD COLUMN {column} TEXT")
+                cursor.execute(f"ALTER TABLE Users ADD COLUMN {column} {'TEXT' if column != 'wishlist' else 'TEXT DEFAULT \"[]\"'}")
             except sqlite3.OperationalError:
                 pass
 
@@ -151,16 +153,15 @@ class DatabaseHelper:
         order_date = datetime.now().strftime("%Y-%m-%d")
         min_delivery_date = (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")
         
-        # Validate and adjust expected_delivery_date
         if expected_delivery_date:
             try:
                 delivery_date = datetime.strptime(expected_delivery_date, "%Y-%m-%d")
                 if delivery_date < datetime.strptime(min_delivery_date, "%Y-%m-%d"):
-                    expected_delivery_date = min_delivery_date  # Adjust to minimum 5 days
+                    expected_delivery_date = min_delivery_date
             except ValueError:
-                expected_delivery_date = min_delivery_date  # Default if invalid format
+                expected_delivery_date = min_delivery_date
         else:
-            expected_delivery_date = min_delivery_date  # Default to 5 days if not provided
+            expected_delivery_date = min_delivery_date
 
         cursor.execute("""
             INSERT INTO SupplierInventoryOrders (book_id, supplier_name, amount, order_date, status, expected_delivery_date)
@@ -218,7 +219,7 @@ class DatabaseHelper:
         conn = self._get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("INSERT INTO Users (first_name, last_name, username, password) VALUES (?, ?, ?, ?)",
+            cursor.execute("INSERT INTO Users (first_name, last_name, username, password, wishlist) VALUES (?, ?, ?, ?, '[]')",
                           (first_name, last_name, username, generate_password_hash(password)))
             conn.commit()
             return True
@@ -306,6 +307,36 @@ class DatabaseHelper:
         if result:
             return {"street": result[0], "city": result[1], "state": result[2], "zipcode": result[3]}
         return {"street": None, "city": None, "state": None, "zipcode": None}
+
+    def get_user_wishlist(self, username):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT wishlist FROM Users WHERE username = ?", (username,))
+        result = cursor.fetchone()
+        conn.close()
+        if result and result[0]:
+            return json.loads(result[0])  # Parse JSON string to list
+        return []
+
+    def add_to_wishlist(self, username, book_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        wishlist = self.get_user_wishlist(username)
+        if book_id not in wishlist:
+            wishlist.append(book_id)
+            cursor.execute("UPDATE Users SET wishlist = ? WHERE username = ?", (json.dumps(wishlist), username))
+            conn.commit()
+        conn.close()
+
+    def remove_from_wishlist(self, username, book_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        wishlist = self.get_user_wishlist(username)
+        if book_id in wishlist:
+            wishlist.remove(book_id)
+            cursor.execute("UPDATE Users SET wishlist = ? WHERE username = ?", (json.dumps(wishlist), username))
+            conn.commit()
+        conn.close()
 
     def update_book_quantity(self, book_id, quantity):
         conn = self._get_connection()

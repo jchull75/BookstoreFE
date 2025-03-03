@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wishlist - Bookstore App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <style>
+        .card-img-top { height: 250px; object-fit: contain; padding: 15px; background-color: #f8f9fa; }
+    </style>
+    <script>
+        function removeFromWishlist(bookId) {
+            fetch('/remove_from_wishlist', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'book_id=' + bookId
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error);
+                location.reload();
+            });
+        }
+    </script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('bookstore') }}">Bookstore</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('cart') }}">Cart</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('wishlist') }}">Wishlist</a>
+                    </li>
+                    {% if session.username == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_add_book') }}">Add Book</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_inventory') }}">Inventory</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_order_books') }}">Order Books</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_orders') }}">Orders</a>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h1 class="mt-4">Your Wishlist</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <p class="message-{{ category }}">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% if wishlist_books|length == 0 %}
+            <p>Your wishlist is empty.</p>
+        {% else %}
+            <form method="POST">
+                <div class="row">
+                    {% for book in wishlist_books %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <img src="http://covers.openlibrary.org/b/isbn/{{ book.isbn }}-M.jpg" 
+                                     class="card-img-top" 
+                                     alt="{{ book.title }} cover" 
+                                     onerror="this.src='{{ url_for('static', filename='covers/placeholder.jpg') }}'">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ book.title }}</h5>
+                                    <p class="card-text">by {{ book.author }}<br>{{ book.genre }}<br>${{ "%.2f" % book.price }}<br>Qty: {{ book.quantity }}</p>
+                                    <div class="form-check">
+                                        <input type="checkbox" name="book_ids" value="{{ book.book_id }}" class="form-check-input">
+                                        <label class="form-check-label">Order</label>
+                                    </div>
+                                    <button type="button" class="btn btn-danger btn-sm mt-2" onclick="removeFromWishlist({{ book.book_id }})">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" name="order_from_wishlist" class="btn btn-primary mt-3">Order Selected Books</button>
+            </form>
+        {% endif %}
+        <a href="{{ url_for('bookstore') }}" class="btn btn-link mt-3">Back to Store</a>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

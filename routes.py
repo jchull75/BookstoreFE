@@ -88,6 +88,33 @@ def register_routes(app):
             address_data = {"street": street, "city": city, "state": state, "zipcode": zipcode}
         return render_template("profile.html", address=address_data)
 
+    @app.route("/wishlist", methods=["GET", "POST"])
+    def wishlist():
+        if 'username' not in session:
+            flash("❌ Please log in to access your wishlist.", "error")
+            return redirect(url_for("login"))
+        wishlist_ids = db_helper.get_user_wishlist(session['username'])
+        wishlist_books = [book for book in db_helper.get_all_books() if book["book_id"] in wishlist_ids]
+        address_data = db_helper.get_user_address(session['username'])
+        if request.method == "POST" and "order_from_wishlist" in request.form:
+            book_ids = request.form.getlist("book_ids")  # Get selected books
+            if not book_ids:
+                flash("❌ No books selected to order!", "error")
+            else:
+                payment_method = "Credit Card: 1234 (Test Mode)"
+                for book_id in map(int, book_ids):
+                    order_id = db_helper.add_order(session['username'], book_id, 
+                                                  address_data["street"], address_data["city"], 
+                                                  address_data["state"], address_data["zipcode"], payment_method)
+                    if order_id:
+                        db_helper.remove_from_wishlist(session['username'], book_id)
+                    else:
+                        flash(f"❌ Cannot order book ID {book_id}: Out of stock!", "error")
+                        return redirect(url_for("wishlist"))
+                flash("✅ Selected books ordered successfully!", "success")
+            return redirect(url_for("wishlist"))
+        return render_template("wishlist.html", wishlist_books=wishlist_books, address=address_data)
+
     @app.route("/admin/add_book", methods=["GET", "POST"])
     def admin_add_book():
         if 'username' not in session or session['username'] != 'admin':
@@ -167,6 +194,22 @@ def register_routes(app):
         elif book["quantity"] <= 0:
             return jsonify({'error': 'Book out of stock'}), 400
         return jsonify({'message': 'Book already in cart'}), 200
+
+    @app.route("/add_to_wishlist", methods=["POST"])
+    def add_to_wishlist():
+        if 'username' not in session:
+            return jsonify({'error': 'Must be logged in'}), 401
+        book_id = int(request.form.get("book_id"))
+        db_helper.add_to_wishlist(session['username'], book_id)
+        return jsonify({'message': 'Book added to wishlist'}), 200
+
+    @app.route("/remove_from_wishlist", methods=["POST"])
+    def remove_from_wishlist():
+        if 'username' not in session:
+            return jsonify({'error': 'Must be logged in'}), 401
+        book_id = int(request.form.get("book_id"))
+        db_helper.remove_from_wishlist(session['username'], book_id)
+        return jsonify({'message': 'Book removed from wishlist'}), 200
 
     @app.route("/orders", methods=["POST"])
     def create_order():
