@@ -36,7 +36,7 @@ def register_routes(app):
         if 'username' not in session:
             flash("❌ Please log in to access the bookstore.", "error")
             return redirect(url_for("login"))
-        books = []
+        books = db_helper.get_all_books()  # Default to all books on GET
         orders = db_helper.get_user_orders(session['username'])
         if request.method == "POST":
             if "search_books" in request.form:
@@ -45,7 +45,7 @@ def register_routes(app):
                 books = [book for book in all_books if search_query in book["title"].lower() or 
                          search_query in book["author"].lower() or search_query in book["genre"].lower()]
             elif "browse" in request.form:
-                books = db_helper.get_all_books()
+                books = db_helper.get_all_books()  # Explicitly reset to all books
         return render_template("bookstore.html", books=books, orders=orders)
 
     @app.route("/cart", methods=["GET", "POST"])
@@ -61,7 +61,6 @@ def register_routes(app):
             shipping_city = request.form["shipping_city"]
             shipping_state = request.form["shipping_state"]
             shipping_zipcode = request.form["shipping_zipcode"]
-            # Preset payment details for testing
             payment_method = "Credit Card: 1234 (Test Mode)"
             for book_id in cart:
                 order_id = db_helper.add_order(session['username'], book_id, shipping_street, shipping_city, shipping_state, shipping_zipcode, payment_method)
@@ -120,7 +119,8 @@ def register_routes(app):
                 flash("✅ Quantity updated successfully!", "success")
             return redirect(url_for("admin_inventory"))
         books = db_helper.get_all_books()
-        return render_template("admin_inventory.html", books=books)
+        analytics = db_helper.get_sales_analytics()
+        return render_template("admin_inventory.html", books=books, analytics=analytics)
 
     @app.route("/admin/order_books", methods=["GET", "POST"])
     def admin_order_books():
@@ -134,6 +134,14 @@ def register_routes(app):
             return redirect(url_for("admin_order_books"))
         inventory_orders = db_helper.get_pending_inventory_orders()
         return render_template("admin_order_books.html", inventory_orders=inventory_orders)
+
+    @app.route("/admin/orders", methods=["GET"])
+    def admin_orders():
+        if 'username' not in session or session['username'] != 'admin':
+            flash("❌ Admin access only!", "error")
+            return redirect(url_for("login"))
+        all_orders = db_helper.get_all_orders()
+        return render_template("admin_orders.html", orders=all_orders)
 
     @app.route("/add_to_cart", methods=["POST"])
     def add_to_cart():
@@ -160,7 +168,7 @@ def register_routes(app):
         if not book_id:
             return jsonify({'error': 'Book ID required'}), 400
         address_data = db_helper.get_user_address(session['username'])
-        payment_method = "Credit Card (Profile Default)"
+        payment_method = "Credit Card: 1234 (Test Mode)"
         order_id = db_helper.add_order(session['username'], int(book_id), 
                                       address_data["street"], address_data["city"], 
                                       address_data["state"], address_data["zipcode"], payment_method)

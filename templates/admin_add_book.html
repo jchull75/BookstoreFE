@@ -3,15 +3,44 @@
 <head>
     <title>Add Book - Bookstore App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { padding: 20px; }
-        .message-success { color: green; }
-        .message-error { color: red; }
-    </style>
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('bookstore') }}">Bookstore</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('cart') }}">Cart</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_add_book') }}">Add Book</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_inventory') }}">Inventory</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_order_books') }}">Order Books</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_orders') }}">Orders</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
     <div class="container">
-        <h1>Add Book</h1>
+        <h1 class="mt-4">Add Book</h1>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -19,22 +48,28 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        <form method="POST">
-            <div class="mb-3">
-                <label class="form-label">Title: <input type="text" name="title" class="form-control" required></label>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Author: <input type="text" name="author" class="form-control" required></label>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Genre: <input type="text" name="genre" class="form-control" required></label>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Price: <input type="number" step="0.01" name="price" class="form-control" required></label>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Book</button>
-        </form>
+        <div class="card p-4">
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Title: <input type="text" name="title" class="form-control" required></label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Author: <input type="text" name="author" class="form-control" required></label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Genre: <input type="text" name="genre" class="form-control" required></label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Price: <input type="number" step="0.01" name="price" class="form-control" required></label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quantity: <input type="number" name="quantity" class="form-control" min="0" required></label>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Book</button>
+            </form>
+        </div>
         <a href="{{ url_for('bookstore') }}" class="btn btn-link mt-3">Back to Store</a>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
