@@ -43,12 +43,13 @@ class DatabaseHelper:
                 author TEXT NOT NULL,
                 genre TEXT NOT NULL,
                 price REAL NOT NULL,
-                quantity INTEGER NOT NULL DEFAULT 0
+                quantity INTEGER NOT NULL DEFAULT 0,
+                isbn TEXT
             )
         """)
 
         try:
-            cursor.execute("ALTER TABLE Books ADD COLUMN quantity INTEGER NOT NULL DEFAULT 0")
+            cursor.execute("ALTER TABLE Books ADD COLUMN isbn TEXT")
         except sqlite3.OperationalError:
             pass
 
@@ -97,45 +98,38 @@ class DatabaseHelper:
 
     def _insert_sample_books(self, cursor):
         books = [
-            ("Great Big Beautiful Life", "Emily Henry", "Romance/Contemporary", 14.99, 10),
-            ("Sunrise on the Reaping", "Suzanne Collins", "YA/Dystopian", 16.99, 10),
-            ("The Dream Hotel", "Laila Lalami", "Literary Thriller", 13.49, 10),
-            ("Onyx Storm", "Rebecca Yarros", "Romantasy/Fantasy", 17.99, 10),
-            ("How to Sleep at Night", "Elizabeth Harris", "Historical Mystery", 12.99, 10),
-            ("Atmosphere", "Taylor Jenkins Reid", "Historical Drama", 15.49, 10),
-            ("Witchful Thinking", "Grady Hendrix", "Horror/Comedy", 13.99, 10),
-            ("Deep End", "Ali Hazelwood", "Romance/Sports", 12.49, 10),
-            ("The Garden", "Nick Newman", "Literary Fantasy", 14.49, 10),
-            ("Matriarch", "Tina Knowles", "Memoir/Nonfiction", 18.99, 10),
-            ("The Foxhole Court", "Nora Sakavic", "Sports Fiction/Drama", 11.99, 10),
-            ("The Night Circus", "Erin Morgenstern", "Fantasy/Romance", 15.99, 10),
-            ("Project Hail Mary", "Andy Weir", "Science Fiction", 16.49, 10),
-            ("The Very Secret Society of Irregular Witches", "Sangu Mandanna", "Cozy Fantasy", 13.99, 10),
-            ("The Silent Patient", "Alex Michaelides", "Psychological Thriller", 14.99, 10),
-            ("Braiding Sweetgrass", "Robin Wall Kimmerer", "Nonfiction/Nature", 12.99, 10),
-            ("A Man Called Ove", "Fredrik Backman", "Contemporary Fiction", 11.49, 10),
-            ("The House in the Cerulean Sea", "TJ Klune", "Fantasy/Feel-Good", 14.49, 10),
-            ("Mexican Gothic", "Silvia Moreno-Garcia", "Gothic Horror", 13.99, 10),
-            ("Tomorrow, and Tomorrow, and Tomorrow", "Gabrielle Zevin", "Literary Coming-of-Age", 15.99, 10),
-            ("The Great Gatsby", "F. Scott Fitzgerald", "Classic Fiction", 10.99, 10),
-            ("1984", "George Orwell", "Dystopian", 9.99, 10),
-            ("To Kill a Mockingbird", "Harper Lee", "Historical Fiction", 12.99, 10),
-            ("The Catcher in the Rye", "J.D. Salinger", "Fiction", 8.99, 10),
-            ("Moby-Dick", "Herman Melville", "Adventure", 11.49, 10),
-            ("Pride and Prejudice", "Jane Austen", "Romance", 7.99, 10),
-            ("The Hobbit", "J.R.R. Tolkien", "Fantasy", 14.99, 10),
-            ("Harry Potter and the Sorcerer’s Stone", "J.K. Rowling", "Fantasy", 12.49, 10),
-            ("Harry Potter and the Chamber of Secrets", "J.K. Rowling", "Fantasy", 13.99, 10),
-            ("Harry Potter and the Prisoner of Azkaban", "J.K. Rowling", "Fantasy", 14.99, 10),
-            ("Harry Potter and the Goblet of Fire", "J.K. Rowling", "Fantasy", 15.99, 10),
-            ("Harry Potter and the Order of the Phoenix", "J.K. Rowling", "Fantasy", 16.99, 10),
-            ("Harry Potter and the Half-Blood Prince", "J.K. Rowling", "Fantasy", 17.99, 10),
-            ("Harry Potter and the Deathly Hallows", "J.K. Rowling", "Fantasy", 18.99, 10),
-            ("The Da Vinci Code", "Dan Brown", "Thriller", 10.99, 10),
-            ("The Alchemist", "Paulo Coelho", "Philosophical", 9.99, 10),
-            ("Mickey7", "Edward Ashton", "Science Fiction", 14.99, 10),
+            ("The Great Gatsby", "F. Scott Fitzgerald", "Classic Fiction", 10.99, 10, "0743273567"),
+            ("1984", "George Orwell", "Dystopian", 9.99, 10, "0451524934"),
+            ("To Kill a Mockingbird", "Harper Lee", "Historical Fiction", 12.99, 10, "0446310786"),
+            ("The Catcher in the Rye", "J.D. Salinger", "Fiction", 8.99, 10, "0316769487"),
+            ("Moby-Dick", "Herman Melville", "Adventure", 11.49, 10, "0142437247"),
+            ("Pride and Prejudice", "Jane Austen", "Romance", 7.99, 10, "0141439513"),
+            ("The Hobbit", "J.R.R. Tolkien", "Fantasy", 14.99, 10, "0345339681"),
+            ("Harry Potter and the Sorcerer’s Stone", "J.K. Rowling", "Fantasy", 12.49, 10, "059035342X"),
+            ("The Da Vinci Code", "Dan Brown", "Thriller", 10.99, 10, "0307474275"),
+            ("The Alchemist", "Paulo Coelho", "Philosophical", 9.99, 10, "0062315005"),
+            ("The Foxhole Court", "Nora Sakavic", "Sports Fiction/Drama", 11.99, 10, "1482697521"),
+            ("The Night Circus", "Erin Morgenstern", "Fantasy/Romance", 15.99, 10, "0307744434"),
+            ("Project Hail Mary", "Andy Weir", "Science Fiction", 16.49, 10, "0593135202"),
+            ("The Very Secret Society of Irregular Witches", "Sangu Mandanna", "Cozy Fantasy", 13.99, 10, "0593209869"),
+            ("The Silent Patient", "Alex Michaelides", "Psychological Thriller", 14.99, 10, "1250301696"),
+            ("Braiding Sweetgrass", "Robin Wall Kimmerer", "Nonfiction/Nature", 12.99, 10, "1571313567"),
+            ("A Man Called Ove", "Fredrik Backman", "Contemporary Fiction", 11.49, 10, "1476738025"),
+            ("The House in the Cerulean Sea", "TJ Klune", "Fantasy/Feel-Good", 14.49, 10, "1250217288"),
+            ("Mexican Gothic", "Silvia Moreno-Garcia", "Gothic Horror", 13.99, 10, "0525620788"),
+            ("Tomorrow, and Tomorrow, and Tomorrow", "Gabrielle Zevin", "Literary Coming-of-Age", 15.99, 10, "0593321200"),
+            ("Dune", "Frank Herbert", "Science Fiction", 15.99, 10, "0441172717"),
+            ("The Shining", "Stephen King", "Horror", 11.99, 10, "0307743659"),
+            ("Sapiens: A Brief History of Humankind", "Yuval Noah Harari", "Non-Fiction", 18.49, 10, "0062316095"),
+            ("The Name of the Wind", "Patrick Rothfuss", "Fantasy", 13.99, 10, "075640407X"),
+            ("Gone Girl", "Gillian Flynn", "Thriller", 10.49, 10, "030758836X"),
+            ("Educated", "Tara Westover", "Memoir", 14.49, 10, "0399590501"),
+            ("The Martian", "Andy Weir", "Science Fiction", 12.99, 10, "0553418025"),
+            ("A Game of Thrones", "George R.R. Martin", "Fantasy", 16.99, 10, "0553103547"),
+            ("The Girl with the Dragon Tattoo", "Stieg Larsson", "Mystery", 11.49, 10, "0307269752"),
+            ("Atomic Habits", "James Clear", "Self-Help", 15.49, 10, "0735211299"),
         ]
-        cursor.executemany("INSERT INTO Books (title, author, genre, price, quantity) VALUES (?, ?, ?, ?, ?)", books)
+        cursor.executemany("INSERT INTO Books (title, author, genre, price, quantity, isbn) VALUES (?, ?, ?, ?, ?, ?)", books)
         print("Inserted 30 sample books with initial quantity of 10 into the database!")
 
     def get_all_books(self):
@@ -143,7 +137,7 @@ class DatabaseHelper:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Books ORDER BY title")
         rows = cursor.fetchall()
-        books = [{"book_id": row[0], "title": row[1], "author": row[2], "genre": row[3], "price": row[4], "quantity": row[5]} for row in rows]
+        books = [{"book_id": row[0], "title": row[1], "author": row[2], "genre": row[3], "price": row[4], "quantity": row[5], "isbn": row[6]} for row in rows]
         conn.close()
         return books
 
