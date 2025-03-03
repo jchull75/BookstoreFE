@@ -16,7 +16,6 @@ class DatabaseHelper:
         conn = self._get_connection()
         cursor = conn.cursor()
 
-        # Create Users table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Users (
                 user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,35 +23,64 @@ class DatabaseHelper:
                 last_name TEXT NOT NULL,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                mailing_address TEXT
+                street TEXT,
+                city TEXT,
+                state TEXT,
+                zipcode TEXT
             )
         """)
 
-        # Add mailing_address column if it doesn’t exist
-        try:
-            cursor.execute("ALTER TABLE Users ADD COLUMN mailing_address TEXT")
-        except sqlite3.OperationalError:
-            pass  # Column already exists
+        for column in ["street", "city", "state", "zipcode"]:
+            try:
+                cursor.execute(f"ALTER TABLE Users ADD COLUMN {column} TEXT")
+            except sqlite3.OperationalError:
+                pass
 
-        # Create Books table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Books (
                 book_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 author TEXT NOT NULL,
                 genre TEXT NOT NULL,
-                price REAL NOT NULL
+                price REAL NOT NULL,
+                quantity INTEGER NOT NULL DEFAULT 0
             )
         """)
 
-        # Create Orders table
+        try:
+            cursor.execute("ALTER TABLE Books ADD COLUMN quantity INTEGER NOT NULL DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Orders (
                 order_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 customer_username TEXT NOT NULL,
                 book_id INTEGER NOT NULL,
                 status TEXT NOT NULL DEFAULT 'Pending',
+                shipping_street TEXT,
+                shipping_city TEXT,
+                shipping_state TEXT,
+                shipping_zipcode TEXT,
+                payment_method TEXT,
+                payment_status TEXT DEFAULT 'Pending',
                 FOREIGN KEY (customer_username) REFERENCES Users(username),
+                FOREIGN KEY (book_id) REFERENCES Books(book_id)
+            )
+        """)
+
+        for column in ["shipping_street", "shipping_city", "shipping_state", "shipping_zipcode", "payment_method", "payment_status"]:
+            try:
+                cursor.execute(f"ALTER TABLE Orders ADD COLUMN {column} {'TEXT' if column != 'payment_status' else 'TEXT DEFAULT \"Pending\"'}")
+            except sqlite3.OperationalError:
+                pass
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS InventoryOrders (
+                inventory_order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_id INTEGER NOT NULL,
+                amount INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'Pending',
                 FOREIGN KEY (book_id) REFERENCES Books(book_id)
             )
         """)
@@ -69,21 +97,33 @@ class DatabaseHelper:
 
     def _insert_sample_books(self, cursor):
         books = [
-            ("The Great Gatsby", "F. Scott Fitzgerald", "Classic", 10.99),
-            ("To Kill a Mockingbird", "Harper Lee", "Classic", 8.99),
-            ("1984", "George Orwell", "Dystopian", 9.99),
-            ("Pride and Prejudice", "Jane Austen", "Romance", 7.99),
-            ("Moby-Dick", "Herman Melville", "Adventure", 11.49),
+            ("The Great Gatsby", "F. Scott Fitzgerald", "Classic Fiction", 10.99, 10),
+            ("1984", "George Orwell", "Dystopian", 9.99, 10),
+            ("To Kill a Mockingbird", "Harper Lee", "Historical Fiction", 12.99, 10),
+            ("The Catcher in the Rye", "J.D. Salinger", "Fiction", 8.99, 10),
+            ("Moby-Dick", "Herman Melville", "Adventure", 11.49, 10),
+            ("Pride and Prejudice", "Jane Austen", "Romance", 7.99, 10),
+            ("The Hobbit", "J.R.R. Tolkien", "Fantasy", 14.99, 10),
+            ("Harry Potter and the Sorcerer’s Stone", "J.K. Rowling", "Fantasy", 12.49, 10),
+            ("The Da Vinci Code", "Dan Brown", "Thriller", 10.99, 10),
+            ("The Alchemist", "Paulo Coelho", "Philosophical", 9.99, 10),
+            ("Harry Potter and the Chamber of Secrets", "J.K. Rowling", "Fantasy", 13.99, 10),
+            ("Harry Potter and the Prisoner of Azkaban", "J.K. Rowling", "Fantasy", 14.99, 10),
+            ("Harry Potter and the Goblet of Fire", "J.K. Rowling", "Fantasy", 15.99, 10),
+            ("Harry Potter and the Order of the Phoenix", "J.K. Rowling", "Fantasy", 16.99, 10),
+            ("Harry Potter and the Half-Blood Prince", "J.K. Rowling", "Fantasy", 17.99, 10),
+            ("Harry Potter and the Deathly Hallows", "J.K. Rowling", "Fantasy", 18.99, 10),
+            ("Mickey7", "Edward Ashton", "Science Fiction", 14.99, 10),
         ]
-        cursor.executemany("INSERT INTO Books (title, author, genre, price) VALUES (?, ?, ?, ?)", books)
-        print("Sample books added to database!")
+        cursor.executemany("INSERT INTO Books (title, author, genre, price, quantity) VALUES (?, ?, ?, ?, ?)", books)
+        print("Sample books with initial quantity of 10 added to database!")
 
     def get_all_books(self):
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Books ORDER BY title")
         rows = cursor.fetchall()
-        books = [{"book_id": row[0], "title": row[1], "author": row[2], "genre": row[3], "price": row[4]} for row in rows]
+        books = [{"book_id": row[0], "title": row[1], "author": row[2], "genre": row[3], "price": row[4], "quantity": row[5]} for row in rows]
         conn.close()
         return books
 
@@ -109,20 +149,29 @@ class DatabaseHelper:
         finally:
             conn.close()
 
-    def add_book(self, title, author, genre, price):
+    def add_book(self, title, author, genre, price, quantity):
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Books (title, author, genre, price) VALUES (?, ?, ?, ?)",
-                      (title, author, genre, price))
+        cursor.execute("INSERT INTO Books (title, author, genre, price, quantity) VALUES (?, ?, ?, ?, ?)",
+                      (title, author, genre, price, quantity))
         conn.commit()
         conn.close()
 
-    def add_order(self, customer_username, book_id):
+    def add_order(self, customer_username, book_id, shipping_street, shipping_city, shipping_state, shipping_zipcode, payment_method):
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Orders (customer_username, book_id, status) VALUES (?, ?, 'Pending')",
-                      (customer_username, book_id))
+        cursor.execute("SELECT quantity FROM Books WHERE book_id = ?", (book_id,))
+        result = cursor.fetchone()
+        if not result or result[0] <= 0:
+            conn.close()
+            return None
+        cursor.execute("UPDATE Books SET quantity = quantity - 1 WHERE book_id = ?", (book_id,))
+        cursor.execute("""
+            INSERT INTO Orders (customer_username, book_id, status, shipping_street, shipping_city, shipping_state, shipping_zipcode, payment_method, payment_status) 
+            VALUES (?, ?, 'Pending', ?, ?, ?, ?, ?, 'Completed')
+        """, (customer_username, book_id, shipping_street, shipping_city, shipping_state, shipping_zipcode, payment_method))
         order_id = cursor.lastrowid
+        cursor.execute("INSERT INTO InventoryOrders (book_id, amount, status) VALUES (?, ?, 'Pending')", (book_id, 5))
         conn.commit()
         conn.close()
         return order_id
@@ -130,7 +179,7 @@ class DatabaseHelper:
     def cancel_order(self, order_id):
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT status FROM Orders WHERE order_id = ?", (order_id,))
+        cursor.execute("SELECT status, book_id FROM Orders WHERE order_id = ?", (order_id,))
         result = cursor.fetchone()
         if not result:
             conn.close()
@@ -139,6 +188,7 @@ class DatabaseHelper:
             conn.close()
             return False
         cursor.execute("UPDATE Orders SET status = 'Cancelled' WHERE order_id = ?", (order_id,))
+        cursor.execute("UPDATE Books SET quantity = quantity + 1 WHERE book_id = ?", (result[1],))
         conn.commit()
         conn.close()
         return True
@@ -147,19 +197,112 @@ class DatabaseHelper:
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT o.order_id, b.title, b.author, o.status
+            SELECT o.order_id, b.title, b.author, o.status, o.shipping_street, o.shipping_city, o.shipping_state, o.shipping_zipcode, o.payment_method, o.payment_status
             FROM Orders o
             JOIN Books b ON o.book_id = b.book_id
             WHERE o.customer_username = ?
         """, (username,))
         rows = cursor.fetchall()
-        orders = [{"order_id": row[0], "title": row[1], "author": row[2], "status": row[3]} for row in rows]
+        orders = [{"order_id": row[0], "title": row[1], "author": row[2], "status": row[3],
+                  "shipping_street": row[4], "shipping_city": row[5], "shipping_state": row[6], "shipping_zipcode": row[7],
+                  "payment_method": row[8], "payment_status": row[9]} for row in rows]
         conn.close()
         return orders
 
-    def update_address(self, username, address):
+    def update_address(self, username, street, city, state, zipcode):
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE Users SET mailing_address = ? WHERE username = ?", (address, username))
+        cursor.execute("UPDATE Users SET street = ?, city = ?, state = ?, zipcode = ? WHERE username = ?",
+                      (street, city, state, zipcode, username))
         conn.commit()
         conn.close()
+
+    def get_user_address(self, username):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT street, city, state, zipcode FROM Users WHERE username = ?", (username,))
+        result = cursor.fetchone()
+        conn.close()
+        if result:
+            return {"street": result[0], "city": result[1], "state": result[2], "zipcode": result[3]}
+        return {"street": None, "city": None, "state": None, "zipcode": None}
+
+    def update_book_quantity(self, book_id, quantity):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Books SET quantity = ? WHERE book_id = ?", (quantity, book_id))
+        conn.commit()
+        conn.close()
+
+    def replenish_book_inventory(self, book_id, amount):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Books SET quantity = quantity + ? WHERE book_id = ?", (amount, book_id))
+        conn.commit()
+        conn.close()
+
+    def get_pending_inventory_orders(self):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT io.inventory_order_id, b.book_id, b.title, b.author, b.genre, b.price, b.quantity, io.amount
+            FROM InventoryOrders io
+            JOIN Books b ON io.book_id = b.book_id
+            WHERE io.status = 'Pending'
+        """)
+        rows = cursor.fetchall()
+        orders = [{"inventory_order_id": row[0], "book_id": row[1], "title": row[2], "author": row[3], "genre": row[4], 
+                  "price": row[5], "quantity": row[6], "amount": row[7]} for row in rows]
+        conn.close()
+        return orders
+
+    def complete_inventory_order(self, inventory_order_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT book_id, amount FROM InventoryOrders WHERE inventory_order_id = ?", (inventory_order_id,))
+        result = cursor.fetchone()
+        if result:
+            book_id, amount = result
+            cursor.execute("UPDATE Books SET quantity = quantity + ? WHERE book_id = ?", (amount, book_id))
+            cursor.execute("UPDATE InventoryOrders SET status = 'Completed' WHERE inventory_order_id = ?", (inventory_order_id,))
+        conn.commit()
+        conn.close()
+
+    def get_all_orders(self):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT o.order_id, o.customer_username, b.title, b.author, o.status, o.shipping_street, o.shipping_city, 
+                   o.shipping_state, o.shipping_zipcode, o.payment_method, o.payment_status, b.price
+            FROM Orders o
+            JOIN Books b ON o.book_id = b.book_id
+            ORDER BY o.order_id DESC
+        """)
+        rows = cursor.fetchall()
+        orders = [{"order_id": row[0], "customer_username": row[1], "title": row[2], "author": row[3], "status": row[4],
+                  "shipping_street": row[5], "shipping_city": row[6], "shipping_state": row[7], "shipping_zipcode": row[8],
+                  "payment_method": row[9], "payment_status": row[10], "price": row[11]} for row in rows]
+        conn.close()
+        return orders
+
+    def get_sales_analytics(self):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT b.book_id, b.title, b.author, COUNT(o.order_id) as order_count
+            FROM Books b
+            LEFT JOIN Orders o ON b.book_id = o.book_id
+            GROUP BY b.book_id, b.title, b.author
+            ORDER BY order_count DESC
+            LIMIT 5
+        """)
+        top_books = [{"book_id": row[0], "title": row[1], "author": row[2], "order_count": row[3]} for row in cursor.fetchall()]
+        cursor.execute("""
+            SELECT SUM(b.price) as total_sales
+            FROM Orders o
+            JOIN Books b ON o.book_id = b.book_id
+            WHERE o.payment_status = 'Completed'
+        """)
+        total_sales = cursor.fetchone()[0] or 0.0
+        conn.close()
+        return {"top_books": top_books, "total_sales": total_sales}
