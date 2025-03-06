@@ -6,60 +6,61 @@
     <title>{% block title %}{% endblock %} - Bookstore</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('home') }}">Bookstore</a>
+            <a class="navbar-brand fw-bold" href="{{ url_for('home') }}"><i class="fas fa-book me-2"></i>Bookstore</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('bookstore') }}">Books</a>
+                        <a class="nav-link" href="{{ url_for('bookstore') }}"><i class="fas fa-books me-1"></i>Books</a>
                     </li>
                     {% if 'user' in session and not is_admin %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+                        <a class="nav-link" href="{{ url_for('profile') }}"><i class="fas fa-user me-1"></i>Profile</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('cart') }}">Cart</a>
+                        <a class="nav-link" href="{{ url_for('cart') }}"><i class="fas fa-shopping-cart me-1"></i>Cart</a>
                     </li>
                     {% elif 'user' in session and is_admin %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt me-1"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_inventory') }}">Inventory</a>
+                        <a class="nav-link" href="{{ url_for('admin_inventory') }}"><i class="fas fa-warehouse me-1"></i>Inventory</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('supplier_orders') }}">Supplier Orders</a>
+                        <a class="nav-link" href="{{ url_for('supplier_orders') }}"><i class="fas fa-truck me-1"></i>Supplier Orders</a>
                     </li>
                     {% endif %}
                 </ul>
-                <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center gap-2">
                     {% if 'user' in session %}
-                    <a class="btn btn-danger" href="{{ url_for('logout') }}">Logout</a>
+                    <a class="btn btn-danger btn-sm" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
                     {% else %}
-                    <a class="btn btn-primary" href="{{ url_for('customer_login') }}">Login</a>
-                    <a class="btn btn-outline-primary ms-2" href="{{ url_for('signup') }}">Sign Up</a>
-                    <!-- Admin Login button on right side, only on homepage -->
+                    <a class="btn btn-primary btn-sm" href="{{ url_for('customer_login') }}"><i class="fas fa-sign-in-alt me-1"></i>Login</a>
+                    <a class="btn btn-outline-light btn-sm" href="{{ url_for('signup') }}"><i class="fas fa-user-plus me-1"></i>Sign Up</a>
                     {% if request.endpoint == 'home' %}
-                    <a class="btn btn-outline-secondary ms-2" href="{{ url_for('admin_login') }}">Admin Login</a>
+                    <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_login') }}"><i class="fas fa-user-shield me-1"></i>Admin</a>
                     {% endif %}
                     {% endif %}
                 </div>
             </div>
         </div>
     </nav>
-    <div class="container">
+    <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}

@@ -1,173 +1,133 @@
 {% extends "layout.html" %}
-{% block title %}Profile - Bookstore{% endblock %}
+{% block title %}Profile{% endblock %}
 {% block content %}
-<div class="container py-5">
-    <h1 class="text-center mb-4">Profile</h1>
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <h3>Edit Profile</h3>
-            <form method="POST" action="{{ url_for('profile') }}">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="first_name" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="first_name" name="first_name" value="{{ profile.first_name }}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="last_name" class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="last_name" name="last_name" value="{{ profile.last_name }}" required>
-                    </div>
-                    <div class="col-md-12">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" value="{{ profile.email }}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="street" class="form-label">Street</label>
-                        <input type="text" class="form-control" id="street" name="street" value="{{ profile.street }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="city" class="form-label">City</label>
-                        <input type="text" class="form-control" id="city" name="city" value="{{ profile.city }}" required>
-                    </div>
-                    <div class="col-md-1">
-                        <label for="state" class="form-label">State</label>
-                        <input type="text" class="form-control" id="state" name="state" value="{{ profile.state }}" required>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="zipcode" class="form-label">Zipcode</label>
-                        <input type="text" class="form-control" id="zipcode" name="zipcode" value="{{ profile.zipcode }}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="mailing_street" class="form-label">Mailing Street</label>
-                        <input type="text" class="form-control" id="mailing_street" name="mailing_street" value="{{ profile.mailing_street or '' }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="mailing_city" class="form-label">Mailing City</label>
-                        <input type="text" class="form-control" id="mailing_city" name="mailing_city" value="{{ profile.mailing_city or '' }}">
-                    </div>
-                    <div class="col-md-1">
-                        <label for="mailing_state" class="form-label">Mailing State</label>
-                        <input type="text" class="form-control" id="mailing_state" name="mailing_state" value="{{ profile.mailing_state or '' }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="mailing_zipcode" class="form-label">Mailing Zipcode</label>
-                        <input type="text" class="form-control" id="mailing_zipcode" name="mailing_zipcode" value="{{ profile.mailing_zipcode or '' }}">
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary-custom btn-custom">Save Changes</button>
-                        <a href="{{ url_for('logout') }}" class="btn btn-danger btn-custom">Logout</a>
-                    </div>
+<div class="container mt-5">
+    <h2>Profile</h2>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ 'danger' if 'not found' in message or 'Invalid' in message else 'success' }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Personal Information</h3>
+            <form method="POST" class="needs-validation" novalidate>
+                <div class="mb-3">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ profile.first_name }}" required>
                 </div>
+                <div class="mb-3">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ profile.last_name }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ profile.email }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="street" class="form-label">Street</label>
+                    <input type="text" class="form-control" id="street" name="street" value="{{ profile.street }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="city" class="form-label">City</label>
+                    <input type="text" class="form-control" id="city" name="city" value="{{ profile.city }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="state" class="form-label">State</label>
+                    <input type="text" class="form-control" id="state" name="state" value="{{ profile.state }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="zipcode" class="form-label">Zip Code</label>
+                    <input type="text" class="form-control" id="zipcode" name="zipcode" value="{{ profile.zipcode }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="mailing_street" class="form-label">Mailing Street</label>
+                    <input type="text" class="form-control" id="mailing_street" name="mailing_street" value="{{ profile.mailing_street|default('') }}">
+                </div>
+                <div class="mb-3">
+                    <label for="mailing_city" class="form-label">Mailing City</label>
+                    <input type="text" class="form-control" id="mailing_city" name="mailing_city" value="{{ profile.mailing_city|default('') }}">
+                </div>
+                <div class="mb-3">
+                    <label for="mailing_state" class="form-label">Mailing State</label>
+                    <input type="text" class="form-control" id="mailing_state" name="mailing_state" value="{{ profile.mailing_state|default('') }}">
+                </div>
+                <div class="mb-3">
+                    <label for="mailing_zipcode" class="form-label">Mailing Zip Code</label>
+                    <input type="text" class="form-control" id="mailing_zipcode" name="mailing_zipcode" value="{{ profile.mailing_zipcode|default('') }}">
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
             </form>
+        </div>
+        <div class="col-md-6">
+            <h3>Orders</h3>
+            {% if orders %}
+                <ul class="list-group">
+                    {% for order in orders %}
+                        <li class="list-group-item">
+                            <strong>Order ID:</strong> {{ order.order_id }}<br>
+                            <strong>Book:</strong> {{ order.title }}<br>
+                            <strong>Quantity:</strong> {{ order.quantity }}<br>
+                            <strong>Price:</strong> ${{ "%.2f" % order.price }}<br>
+                            <strong>Payment Method:</strong> {{ order.payment_method }}<br>
+                            <strong>Shipping Address:</strong> {{ order.shipping_address }}<br>
+                            <strong>Status:</strong> {{ order.status }}<br>
+                            <strong>Order Date:</strong> {{ order.order_date }}<br>
+                            {% if is_admin %}
+                                <form method="POST" action="{{ url_for('admin_orders') }}" style="display:inline;">
+                                    <input type="hidden" name="customer_order_id" value="{{ order.order_id }}">
+                                    <select name="status" class="form-control form-control-sm d-inline-block w-auto">
+                                        <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                        <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                        <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                        <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-secondary">Update Status</button>
+                                </form>
+                            {% else %}
+                                {% if order.status != 'Cancelled' and order.status != 'Delivered' %}
+                                    <form method="POST" action="{{ url_for('cancel_order') }}" style="display:inline;">
+                                        <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Cancel Order</button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No orders yet.</p>
+            {% endif %}
+
+            <h3>Wishlist</h3>
+            {% if wishlist %}
+                <ul class="list-group">
+                    {% for item in wishlist %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ item.title }}</strong> by {{ item.author }} - ${{ "%.2f" % item.price }} (Qty: {{ item.quantity }})
+                            </div>
+                            <div>
+                                <form method="POST" action="{{ url_for('remove_from_wishlist') }}" style="display:inline;">
+                                    <input type="hidden" name="book_id" value="{{ item.book_id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('order_from_wishlist') }}" style="display:inline;">
+                                    <input type="hidden" name="book_id" value="{{ item.book_id }}">
+                                    <input type="hidden" name="quantity" value="{{ item.quantity }}">
+                                    <button type="submit" class="btn btn-sm btn-success">Buy Now</button>
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Your wishlist is empty.</p>
+            {% endif %}
         </div>
     </div>
-
-    <h3 class="mt-5">Your Cart</h3>
-    {% if cart|length == 0 %}
-        <p class="text-center text-muted">Your cart is empty.</p>
-    {% else %}
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>Book Title</th>
-                        <th>Quantity</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for book_id, item in cart.items() %}
-                    <tr>
-                        <td>{{ item.title }}</td>
-                        <td>{{ item.quantity }}</td>
-                        <td>
-                            <form method="POST" action="{{ url_for('remove_from_cart') }}" class="d-inline">
-                                <input type="hidden" name="book_id" value="{{ book_id }}">
-                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <form method="POST" action="{{ url_for('checkout') }}">
-                <button type="submit" class="btn btn-primary-custom btn-custom">Checkout</button>
-            </form>
-        </div>
-    {% endif %}
-
-    <h3 class="mt-5">Your Wishlist</h3>
-    {% if wishlist|length == 0 %}
-        <p class="text-center text-muted">Your wishlist is empty.</p>
-    {% else %}
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>Book Title</th>
-                        <th>Quantity</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in wishlist %}
-                    <tr>
-                        <td>{{ item.title }}</td>
-                        <td>{{ item.quantity }}</td>
-                        <td>
-                            <form method="POST" action="{{ url_for('order_from_wishlist') }}" class="d-inline">
-                                <input type="hidden" name="book_id" value="{{ item.book_id }}">
-                                <input type="hidden" name="quantity" value="{{ item.quantity }}">
-                                <button type="submit" class="btn btn-primary btn-sm">Order</button>
-                            </form>
-                            <form method="POST" action="{{ url_for('remove_from_wishlist') }}" class="d-inline">
-                                <input type="hidden" name="book_id" value="{{ item.book_id }}">
-                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% endif %}
-
-    <h3 class="mt-5">Your Orders</h3>
-    {% if orders|length == 0 %}
-        <p class="text-center text-muted">You have no orders yet.</p>
-    {% else %}
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Book Title</th>
-                        <th>Quantity</th>
-                        <th>Order Date</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in orders %}
-                    <tr>
-                        <td>{{ order.order_id }}</td>
-                        <td>{{ order.book_title }}</td>
-                        <td>{{ order.quantity }}</td>
-                        <td>{{ order.order_date }}</td>
-                        <td>{{ order.status }}</td>
-                        <td>
-                            {% if order.status == 'Pending' %}
-                            <form method="POST" action="{{ url_for('cancel_order') }}" class="d-inline">
-                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
-                            </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% endif %}
 </div>
 {% endblock %}

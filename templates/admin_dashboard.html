@@ -1,111 +1,106 @@
 {% extends "layout.html" %}
 {% block title %}Admin Dashboard{% endblock %}
 {% block content %}
-<div class="container py-5">
-    <h1 class="text-center mb-4 text-light">Admin Dashboard</h1>
+<div class="container mt-5">
+    <h2>Admin Dashboard</h2>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ 'danger' if 'not found' in message or 'Invalid' in message else 'success' }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-    <!-- Navigation Buttons -->
-    <div class="d-flex justify-content-center gap-3 mb-4">
-        <a href="{{ url_for('supplier_orders') }}" class="btn btn-primary">Supplier Orders</a>
-        <a href="{{ url_for('admin_inventory') }}" class="btn btn-outline-secondary">Manage Inventory</a>
-        <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-secondary">Customer Orders</a>
-        <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
-    </div>
+    <ul class="nav nav-tabs" id="adminTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="supplier-orders-tab" data-bs-toggle="tab" data-bs-target="#supplier-orders" type="button" role="tab">Supplier Orders</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="customer-orders-tab" data-bs-toggle="tab" data-bs-target="#customer-orders" type="button" role="tab">Customer Orders</button>
+        </li>
+    </ul>
 
-    <!-- Supplier Orders Section -->
-    <h3>Supplier Orders</h3>
-    {% if grouped_orders|length == 0 %}
-        <p class="text-center text-muted">No supplier orders yet.</p>
-    {% else %}
-        <div class="table-responsive">
-            <table class="table table-striped table-hover text-light">
-                <thead>
-                    <tr>
-                        <th>Group Order ID</th>
-                        <th>Supplier</th>
-                        <th>Books</th>
-                        <th>Total Price</th>
-                        <th>Order Date</th>
-                        <th>Status</th>
-                        <th>Update Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for group_id, order in grouped_orders.items() %}
-                    <tr>
-                        <td>{{ group_id }}</td>
-                        <td>{{ order.supplier }}</td>
-                        <td>
-                            <ul>
-                                {% for book in order.books %}
-                                <li>{{ book.book_title }} (Qty: {{ book.quantity }}, Price: ${{ "%.2f" % book.price }})</li>
-                                {% endfor %}
-                            </ul>
-                        </td>
-                        <td>${{ "%.2f" % order.total_price }}</td>
-                        <td>{{ order.order_date }}</td>
-                        <td>{{ order.status }}</td>
-                        <td>
-                            <form method="POST" action="{{ url_for('admin_dashboard') }}">
+    <div class="tab-content" id="adminTabContent">
+        <div class="tab-pane fade show active" id="supplier-orders" role="tabpanel">
+            <h3>Supplier Orders</h3>
+            {% if grouped_orders %}
+                {% for group_id, order_group in grouped_orders.items() %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            Group ID: {{ group_id }} | Supplier: {{ order_group.supplier }} | Total Price: ${{ "%.2f" % order_group.total_price }} | Status: {{ order_group.status }} | Date: {{ order_group.order_date }}
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            {% for order in order_group.books %}
+                                <li class="list-group-item">
+                                    Book ID: {{ order.book_id }} | Quantity: {{ order.quantity }} | Price: ${{ "%.2f" % order.price }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="card-body">
+                            <form method="POST" action="">
                                 <input type="hidden" name="supplier_group_id" value="{{ group_id }}">
-                                <select name="status" class="form-select form-select-sm d-inline-block w-auto">
-                                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                    <option value="Processed" {% if order.status == 'Processed' %}selected{% endif %}>Processed</option>
-                                    <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                <select name="status" class="form-control form-control-sm d-inline-block w-auto">
+                                    <option value="Pending" {% if order_group.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Shipped" {% if order_group.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                    <option value="Delivered" {% if order_group.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                    <option value="Cancelled" {% if order_group.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
                                 </select>
-                                <button type="submit" class="btn btn-primary btn-sm mt-1">Update</button>
+                                <button type="submit" class="btn btn-sm btn-primary">Update Status</button>
                             </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No supplier orders yet.</p>
+            {% endif %}
         </div>
-    {% endif %}
 
-    <!-- Customer Orders Section -->
-    <h3>Customer Orders</h3>
-    {% if customer_orders|length == 0 %}
-        <p class="text-center text-muted">No customer orders yet.</p>
-    {% else %}
-        <div class="table-responsive">
-            <table class="table table-striped table-hover text-light">
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Customer Email</th>
-                        <th>Book Title</th>
-                        <th>Quantity</th>
-                        <th>Order Date</th>
-                        <th>Status</th>
-                        <th>Update Status</th>
-                    </tr>
-                </thead>
-                <tbody>
+        <div class="tab-pane fade" id="customer-orders" role="tabpanel">
+            <h3>Customer Orders</h3>
+            {% if customer_orders %}
+                <ul class="list-group">
                     {% for order in customer_orders %}
-                    <tr>
-                        <td>{{ order.order_id }}</td>
-                        <td>{{ order.customer_email }}</td>
-                        <td>{{ order.book_title }}</td>
-                        <td>{{ order.quantity }}</td>
-                        <td>{{ order.order_date }}</td>
-                        <td>{{ order.status }}</td>
-                        <td>
-                            <form method="POST" action="{{ url_for('admin_dashboard') }}">
+                        <li class="list-group-item">
+                            <strong>Order ID:</strong> {{ order.order_id }}<br>
+                            <strong>Book:</strong> {{ order.title }}<br>
+                            <strong>Quantity:</strong> {{ order.quantity }}<br>
+                            <strong>Price:</strong> ${{ "%.2f" % order.price }}<br>
+                            <strong>Payment Method:</strong> {{ order.payment_method }}<br>
+                            <strong>Shipping Address:</strong> {{ order.shipping_address }}<br>
+                            <strong>Status:</strong> {{ order.status }}<br>
+                            <strong>Order Date:</strong> {{ order.order_date }}<br>
+                            <form method="POST" action="" style="display:inline;">
                                 <input type="hidden" name="customer_order_id" value="{{ order.order_id }}">
-                                <select name="status" class="form-select form-select-sm d-inline-block w-auto">
+                                <select name="status" class="form-control form-control-sm d-inline-block w-auto">
                                     <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                    <option value="Processed" {% if order.status == 'Processed' %}selected{% endif %}>Processed</option>
+                                    <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
                                     <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
                                 </select>
-                                <button type="submit" class="btn btn-primary btn-sm mt-1">Update</button>
+                                <button type="submit" class="btn btn-sm btn-secondary">Update Status</button>
                             </form>
-                        </td>
-                    </tr>
+                        </li>
                     {% endfor %}
-                </tbody>
-            </table>
+                </ul>
+            {% else %}
+                <p>No customer orders yet.</p>
+            {% endif %}
         </div>
-    {% endif %}
+    </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab) {
+        const triggerTabList = document.querySelectorAll('#adminTab button');
+        triggerTabList.forEach(triggerEl => {
+            const tabTrigger = new bootstrap.Tab(triggerEl);
+            if (triggerEl.getAttribute('data-bs-target') === `#${tab}`) {
+                tabTrigger.show();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
