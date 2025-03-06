@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block title %}Manage Books - Bookstore{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Manage Books</h1>
+    <div class="d-flex justify-content-center gap-3 mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary-custom btn-custom">Admin Dashboard</a>
+        <a href="{{ url_for('admin_inventory') }}" class="btn btn-outline-secondary btn-custom">Manage Inventory</a>
+        <a href="{{ url_for('supplier_orders') }}" class="btn btn-outline-secondary btn-custom">Supplier Orders</a>
+        <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-secondary btn-custom">Customer Orders</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger btn-custom">Logout</a>
+    </div>
+    <ul class="list-group">
+        {% for book in books %}
+            <li class="list-group-item">
+                {{ book.title }} - {{ book.author }} ({{ book.quantity }} in stock)
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

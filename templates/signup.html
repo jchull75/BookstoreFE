@@ -1,32 +1,47 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Signup - Bookstore App</title>
-    <style>
-        body { padding: 16px; font-family: Arial, sans-serif; }
-        h1 { font-size: 24px; }
-        input { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; margin: 16px 0; }
-        .message-success { color: green; }
-        .message-error { color: red; }
-    </style>
-</head>
-<body>
-    <h1>Sign Up</h1>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <p class="message-{{ category }}">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-    <form method="POST">
-        <label>First Name: <input type="text" name="first_name" value="{{ request.form.first_name or '' }}" required></label><br>
-        <label>Last Name: <input type="text" name="last_name" value="{{ request.form.last_name or '' }}" required></label><br>
-        <label>Username: <input type="text" name="username" value="{{ request.form.username or '' }}" required></label><br>
-        <label>Password: <input type="password" name="password" required></label><br>
-        <button type="submit">Sign Up</button>
-    </form>
-    <button onclick="window.location.href='{{ url_for('login') }}'">Back to Login</button>
-</body>
-</html>
+{% extends "layout.html" %}
+{% block title %}Sign Up - Bookstore{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center mb-4">Sign Up</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <form method="POST" action="{{ url_for('signup') }}">
+                <div class="mb-3">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="street" class="form-label">Street</label>
+                    <input type="text" class="form-control" id="street" name="street" required>
+                </div>
+                <div class="mb-3">
+                    <label for="city" class="form-label">City</label>
+                    <input type="text" class="form-control" id="city" name="city" required>
+                </div>
+                <div class="mb-3">
+                    <label for="state" class="form-label">State</label>
+                    <input type="text" class="form-control" id="state" name="state" required>
+                </div>
+                <div class="mb-3">
+                    <label for="zipcode" class="form-label">Zipcode</label>
+                    <input type="text" class="form-control" id="zipcode" name="zipcode" required>
+                </div>
+                <button type="submit" class="btn btn-primary-custom btn-custom w-100">Sign Up</button>
+            </form>
+            <p class="text-center mt-3">Already have an account? <a href="{{ url_for('customer_login') }}">Log In</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

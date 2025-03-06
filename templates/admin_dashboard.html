@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center mb-4 text-light">Admin Dashboard</h1>
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex justify-content-center gap-3 mb-4">
+        <a href="{{ url_for('supplier_orders') }}" class="btn btn-primary">Supplier Orders</a>
+        <a href="{{ url_for('admin_inventory') }}" class="btn btn-outline-secondary">Manage Inventory</a>
+        <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-secondary">Customer Orders</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+    </div>
+
+    <!-- Supplier Orders Section -->
+    <h3>Supplier Orders</h3>
+    {% if grouped_orders|length == 0 %}
+        <p class="text-center text-muted">No supplier orders yet.</p>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover text-light">
+                <thead>
+                    <tr>
+                        <th>Group Order ID</th>
+                        <th>Supplier</th>
+                        <th>Books</th>
+                        <th>Total Price</th>
+                        <th>Order Date</th>
+                        <th>Status</th>
+                        <th>Update Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group_id, order in grouped_orders.items() %}
+                    <tr>
+                        <td>{{ group_id }}</td>
+                        <td>{{ order.supplier }}</td>
+                        <td>
+                            <ul>
+                                {% for book in order.books %}
+                                <li>{{ book.book_title }} (Qty: {{ book.quantity }}, Price: ${{ "%.2f" % book.price }})</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td>${{ "%.2f" % order.total_price }}</td>
+                        <td>{{ order.order_date }}</td>
+                        <td>{{ order.status }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin_dashboard') }}">
+                                <input type="hidden" name="supplier_group_id" value="{{ group_id }}">
+                                <select name="status" class="form-select form-select-sm d-inline-block w-auto">
+                                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Processed" {% if order.status == 'Processed' %}selected{% endif %}>Processed</option>
+                                    <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary btn-sm mt-1">Update</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <!-- Customer Orders Section -->
+    <h3>Customer Orders</h3>
+    {% if customer_orders|length == 0 %}
+        <p class="text-center text-muted">No customer orders yet.</p>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover text-light">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer Email</th>
+                        <th>Book Title</th>
+                        <th>Quantity</th>
+                        <th>Order Date</th>
+                        <th>Status</th>
+                        <th>Update Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in customer_orders %}
+                    <tr>
+                        <td>{{ order.order_id }}</td>
+                        <td>{{ order.customer_email }}</td>
+                        <td>{{ order.book_title }}</td>
+                        <td>{{ order.quantity }}</td>
+                        <td>{{ order.order_date }}</td>
+                        <td>{{ order.status }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin_dashboard') }}">
+                                <input type="hidden" name="customer_order_id" value="{{ order.order_id }}">
+                                <select name="status" class="form-select form-select-sm d-inline-block w-auto">
+                                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Processed" {% if order.status == 'Processed' %}selected{% endif %}>Processed</option>
+                                    <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary btn-sm mt-1">Update</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

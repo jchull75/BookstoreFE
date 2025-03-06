@@ -1,0 +1,163 @@
+{% extends "layout.html" %}
+{% block title %}Admin - Supplier Orders{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>📦 Supplier Orders</h1>
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex justify-content-center gap-3 mb-4">
+        <a href="{{ url_for('admin_inventory') }}" class="btn btn-outline-secondary">Manage Inventory</a>
+        <a href="{{ url_for('admin_orders') }}" class="btn btn-outline-secondary">Customer Orders</a>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+    </div>
+
+    <!-- Form to Add Supplier Order -->
+    <h3>Add New Supplier Order</h3>
+    <form method="POST" class="mb-4" id="supplierOrderForm">
+        <div class="row g-3 mb-3">
+            <div class="col-md-12">
+                <label for="supplier" class="form-label">Supplier</label>
+                <select class="form-select" id="supplier" name="supplier" required>
+                    <option value="" disabled selected>Select a supplier</option>
+                    <option value="BookHaven Supplies">BookHaven Supplies</option>
+                    <option value="LitSource Co.">LitSource Co.</option>
+                    <option value="PageMaster Inc.">PageMaster Inc.</option>
+                    <option value="Readers’ Depot">Readers’ Depot</option>
+                    <option value="Novelty Distributors">Novelty Distributors</option>
+                </select>
+            </div>
+        </div>
+        <div id="bookEntries">
+            <div class="row g-3 mb-3 book-entry">
+                <div class="col-md-4">
+                    <label for="book_id_0" class="form-label">Book</label>
+                    <select class="form-select book-select" id="book_id_0" name="book_id[]" required>
+                        <option value="" data-price="0.00" disabled selected>Select a book</option>
+                        {% for book in books %}
+                        <option value="{{ book.book_id }}" data-price="{{ book.price }}">{{ book.title }} ({{ book.author }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="quantity_0" class="form-label">Quantity</label>
+                    <input type="number" class="form-control" id="quantity_0" name="quantity[]" min="1" value="1" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="price_0" class="form-label">Price ($)</label>
+                    <input type="number" step="0.01" class="form-control price-input" id="price_0" name="price[]" min="0.01" value="0.00" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger remove-book-btn" style="display: none;">Remove</button>
+                </div>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-12">
+                <button type="button" class="btn btn-secondary" id="addBookBtn">Add Another Book</button>
+                <button type="submit" class="btn btn-primary-custom btn-custom float-end">Add Order</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Supplier Orders Table -->
+    <h3>Current Orders</h3>
+    {% if grouped_orders|length == 0 %}
+        <p class="text-center text-muted">No supplier orders have been placed yet.</p>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Group Order ID</th>
+                        <th>Supplier</th>
+                        <th>Books</th>
+                        <th>Total Price</th>
+                        <th>Order Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group_id, order in grouped_orders.items() %}
+                    <tr>
+                        <td>{{ group_id }}</td>
+                        <td>{{ order.supplier }}</td>
+                        <td>
+                            <ul>
+                                {% for book in order.books %}
+                                <li>{{ book.book_title }} (Qty: {{ book.quantity }}, Price: ${{ "%.2f" % book.price }})</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td>${{ "%.2f" % order.total_price }}</td>
+                        <td>{{ order.order_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    // Function to update price based on selected book
+    function updatePrice(selectElement, priceInputId) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const price = selectedOption.getAttribute('data-price') || '0.00';
+        document.getElementById(priceInputId).value = parseFloat(price).toFixed(2);
+    }
+
+    // Initial book entry
+    document.getElementById('book_id_0').addEventListener('change', function() {
+        updatePrice(this, 'price_0');
+    });
+
+    document.getElementById('addBookBtn').addEventListener('click', function() {
+        const bookEntries = document.getElementById('bookEntries');
+        const entryCount = bookEntries.getElementsByClassName('book-entry').length;
+        const newEntry = document.createElement('div');
+        newEntry.className = 'row g-3 mb-3 book-entry';
+        newEntry.innerHTML = `
+            <div class="col-md-4">
+                <label for="book_id_${entryCount}" class="form-label">Book</label>
+                <select class="form-select book-select" id="book_id_${entryCount}" name="book_id[]" required>
+                    <option value="" data-price="0.00" disabled selected>Select a book</option>
+                    {% for book in books %}
+                    <option value="{{ book.book_id }}" data-price="{{ book.price }}">{{ book.title }} ({{ book.author }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="quantity_${entryCount}" class="form-label">Quantity</label>
+                <input type="number" class="form-control" id="quantity_${entryCount}" name="quantity[]" min="1" value="1" required>
+            </div>
+            <div class="col-md-2">
+                <label for="price_${entryCount}" class="form-label">Price ($)</label>
+                <input type="number" step="0.01" class="form-control price-input" id="price_${entryCount}" name="price[]" min="0.01" value="0.00" required>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-danger remove-book-btn">Remove</button>
+            </div>
+        `;
+        bookEntries.appendChild(newEntry);
+        // Add event listener to new book select
+        document.getElementById(`book_id_${entryCount}`).addEventListener('change', function() {
+            updatePrice(this, `price_${entryCount}`);
+        });
+        updateRemoveButtons();
+    });
+
+    function updateRemoveButtons() {
+        const removeButtons = document.getElementsByClassName('remove-book-btn');
+        const bookEntries = document.getElementsByClassName('book-entry');
+        for (let i = 0; i < removeButtons.length; i++) {
+            removeButtons[i].style.display = bookEntries.length > 1 ? 'block' : 'none';
+            removeButtons[i].onclick = function() {
+                this.parentElement.parentElement.remove();
+                updateRemoveButtons();
+            };
+        }
+    }
+
+    updateRemoveButtons();
+</script>
+{% endblock %}
